@@ -1,4 +1,6 @@
 def progress_bar(percent):
-    total = 10
-    filled = int(total * percent / 100)
-    return "█" * filled + "░" * (total - filled)
+    total_blocks = 10
+    filled_blocks = int(percent / 10)
+
+    bar = "█" * filled_blocks + "░" * (total_blocks - filled_blocks)
+    return f"{bar} {percent}%"
