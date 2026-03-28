@@ -6,6 +6,7 @@ import bot.handlers.scanner
 
 from flask import Flask
 import threading
+import asyncio
 
 app = Flask(__name__)
 
@@ -15,6 +16,8 @@ def home():
 
 
 def run_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     executor.start_polling(dp, skip_updates=True)
 
 
