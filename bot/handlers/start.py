@@ -20,13 +20,13 @@ async def start_cmd(message: types.Message):
         )
         return
 
-    msg = await message.answer("⚡ Booting...")
+msg = await message.answer("⚡ Initializing...")
 
-    for p in [10, 30, 60, 100]:
-        await asyncio.sleep(0.5)
-        await msg.edit_text(
-            f"⚡ Booting Proxy OS...\n\n{progress_bar(p)} {p}%"
-        )
+for p in range(10, 101, 10):
+    await asyncio.sleep(0.3)
+    await msg.edit_text(
+        f"⚡ Booting Proxy OS...\n\n{progress_bar(p)}"
+    )
 
     await msg.edit_text(
         "✅ System Ready\n\n👑 Welcome Operator",
