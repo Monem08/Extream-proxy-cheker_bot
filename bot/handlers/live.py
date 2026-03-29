@@ -3,6 +3,9 @@ from bot.loader import dp
 from bot.services.live_proxy_service import fetch_proxies
 from bot.services.scanner_service import run_scan
 from bot.keyboards.cancel_kb import cancel_kb
+from bot.services.rate_limiter import is_allowed
+from bot.services.anti_spam import is_spamming
+from bot.services.security_service import add_strike
 
 
 @dp.callback_query_handler(lambda c: c.data == "live")
