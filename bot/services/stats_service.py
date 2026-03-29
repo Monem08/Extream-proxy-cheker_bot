@@ -6,41 +6,45 @@ FILE = Path("bot/data/stats.json")
 
 def load_stats():
     if not FILE.exists():
-        return {}
+        return {
+            "users": [],
+            "scans": 0,
+            "live": 0
+        }
     return json.loads(FILE.read_text())
 
 
 def save_stats(data):
+    FILE.parent.mkdir(parents=True, exist_ok=True)
     FILE.write_text(json.dumps(data, indent=2))
 
 
-def inc_stat(key):
+def add_user(user_id):
     data = load_stats()
-    data[key] = data.get(key, 0) + 1
+
+    if user_id not in data["users"]:
+        data["users"].append(user_id)
+
+    save_stats(data)
+
+
+def add_scan():
+    data = load_stats()
+    data["scans"] += 1
+    save_stats(data)
+
+
+def add_live():
+    data = load_stats()
+    data["live"] += 1
     save_stats(data)
 
 
 def get_stats():
-    return load_stats()
-    
-stats = {
-    "users": set(),
-    "scans": 0,
-    "live": 0
-}
+    data = load_stats()
 
-def add_user(user_id):
-    stats["users"].add(user_id)
-
-def add_scan():
-    stats["scans"] += 1
-
-def add_live():
-    stats["live"] += 1
-
-def get_stats():
     return {
-        "users": len(stats["users"]),
-        "scans": stats["scans"],
-        "live": stats["live"]
+        "users": len(data["users"]),
+        "scans": data["scans"],
+        "live": data["live"]
     }
