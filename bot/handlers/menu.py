@@ -8,7 +8,14 @@ from bot.services.security_service import add_strike
 from bot.config import OWNER_ID
 
 
-@dp.callback_query_handler()
+# 🎯 ONLY MENU BUTTONS HANDLE
+@dp.callback_query_handler(lambda c: c.data in [
+    "menu",
+    "start_scan",
+    "upload",
+    "settings",
+    "cancel"
+])
 async def handle_menu(callback: types.CallbackQuery):
     user_id = callback.from_user.id
 
@@ -35,7 +42,10 @@ async def handle_menu(callback: types.CallbackQuery):
         pass
 
     if data == "menu":
-        await callback.message.answer("🚀 Choose an option:", reply_markup=main_menu())
+        await callback.message.answer(
+            "🚀 Choose an option:",
+            reply_markup=main_menu()
+        )
 
     elif data == "start_scan":
         await callback.message.answer("📂 Send proxy list (ip:port)")
@@ -43,13 +53,13 @@ async def handle_menu(callback: types.CallbackQuery):
     elif data == "upload":
         await callback.message.answer("📂 Send .txt file with proxies")
 
-    elif data == "live":
-        await callback.message.answer("🌍 Fetching proxies...")
-
     elif data == "settings":
         await callback.message.answer("⚙️ Settings coming soon...")
 
     elif data == "cancel":
-        await callback.message.answer("🚀 Back to menu", reply_markup=main_menu())
+        await callback.message.answer(
+            "🚀 Back to menu",
+            reply_markup=main_menu()
+        )
 
     await callback.answer()
