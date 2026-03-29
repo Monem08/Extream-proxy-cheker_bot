@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+
 def main_menu():
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
@@ -7,8 +8,9 @@ def main_menu():
         InlineKeyboardButton("📂 Upload Proxy", callback_data="upload"),
         InlineKeyboardButton("🌍 Live Proxies", callback_data="live"),
         InlineKeyboardButton("⚙️ Settings", callback_data="settings"),
-        InlineKeyboardButton("⚙️ Maintenance", callback_data="maintenance")
-        InlineKeyboardButton("👑 Admin", callback_data="admin_panel")
+        InlineKeyboardButton("⚙️ Maintenance", callback_data="maintenance"),
+        InlineKeyboardButton("👑 Admin", callback_data="admin_panel"),
+        InlineKeyboardButton("ℹ️ Info", callback_data="info")
     )
     return kb
 
