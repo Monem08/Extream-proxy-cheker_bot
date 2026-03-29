@@ -1,9 +1,7 @@
 from aiogram import types
 from bot.loader import dp
 from bot.keyboards.main_menu import main_menu
-from bot.services.message_manager import set_message
 
-# 🔥 ADD THIS
 from bot.services.rate_limiter import is_allowed
 from bot.services.anti_spam import is_spamming
 from bot.services.security_service import add_strike
@@ -17,7 +15,6 @@ async def handle_menu(callback: types.CallbackQuery):
     # 👑 OWNER BYPASS
     if user_id != OWNER_ID:
 
-        # 🚫 anti spam
         if is_spamming(user_id):
             banned = add_strike(user_id)
             if banned:
@@ -26,7 +23,6 @@ async def handle_menu(callback: types.CallbackQuery):
                 await callback.message.answer("⚠️ Stop spamming!")
             return
 
-        # ⏱ rate limit
         if not is_allowed(user_id):
             await callback.answer("⏳ Slow down bro...", show_alert=True)
             return
@@ -38,43 +34,22 @@ async def handle_menu(callback: types.CallbackQuery):
     except:
         pass
 
-    # 💀 MAIN MENU ROUTER
     if data == "menu":
-        msg = await callback.message.answer(
-            "🚀 Choose an option:",
-            reply_markup=main_menu()
-        )
-        set_message(user_id, msg.message_id)
+        await callback.message.answer("🚀 Choose an option:", reply_markup=main_menu())
 
     elif data == "start_scan":
-        msg = await callback.message.answer(
-            "📂 Send proxy list (ip:port)"
-        )
-        set_message(user_id, msg.message_id)
+        await callback.message.answer("📂 Send proxy list (ip:port)")
 
     elif data == "upload":
-        msg = await callback.message.answer(
-            "📂 Send .txt file with proxies"
-        )
-        set_message(user_id, msg.message_id)
+        await callback.message.answer("📂 Send .txt file with proxies")
 
     elif data == "live":
-        msg = await callback.message.answer(
-            "🌍 Fetching proxies..."
-        )
-        set_message(user_id, msg.message_id)
+        await callback.message.answer("🌍 Fetching proxies...")
 
     elif data == "settings":
-        msg = await callback.message.answer(
-            "⚙️ Settings coming soon..."
-        )
-        set_message(user_id, msg.message_id)
+        await callback.message.answer("⚙️ Settings coming soon...")
 
     elif data == "cancel":
-        msg = await callback.message.answer(
-            "🚀 Back to menu",
-            reply_markup=main_menu()
-        )
-        set_message(user_id, msg.message_id)
+        await callback.message.answer("🚀 Back to menu", reply_markup=main_menu())
 
     await callback.answer()
