@@ -9,6 +9,7 @@ from bot.states.user_state import reset_state
 from bot.services.user_service import add_user
 from bot.services.role_service import get_role
 from bot.services.ban_service import is_banned
+from bot.services.maintenance_service import is_maintenance
 
 import asyncio
 
@@ -28,6 +29,12 @@ async def start_cmd(message: types.Message):
         cancel_task(user_id)
         reset_state(user_id)
         await message.answer("⚠️ Previous task cancelled")
+
+    # 💀 MAINTENANCE CHECK (FIXED POSITION ✅)
+    role = get_role(user_id)
+    if is_maintenance() and role not in ["owner", "admin"]:
+        await message.answer("🚧 Bot Under Maintenance\n⏳ Try later")
+        return
 
     # 🔐 JOIN CHECK
     joined = await is_joined(bot, user_id)
