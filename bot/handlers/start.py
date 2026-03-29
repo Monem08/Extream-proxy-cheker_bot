@@ -9,6 +9,9 @@ from bot.states.user_state import reset_state
 from bot.services.user_service import add_user
 from bot.services.role_service import get_role
 from bot.services.ban_service import is_banned
+from bot.services.rate_limiter import is_allowed
+from bot.services.anti_spam import is_spamming
+from bot.services.security_service import add_strike
 import asyncio
 
 
