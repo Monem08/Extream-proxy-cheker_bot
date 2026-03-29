@@ -15,7 +15,7 @@ import bot.handlers.scanner
 
 
 # 🔧 Logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 
 
 # 🌐 run web server
