@@ -17,31 +17,32 @@ async def scan_proxies(message: types.Message):
         await message.answer("❌ Invalid action")
         return
 
-    # 💀 delete previous "Send proxy list" message
+    # 💀 delete previous UI message
     delete_message(user_id)
 
     proxies = message.text.split("\n")
 
     msg = await message.answer("🚀 Scanning...")
 
-    # ⚡ ultra fast scan
+    # ⚡ scan
     results = await run_scan(proxies)
 
-    alive = [p for p, ok in results if ok]
-    dead = [p for p, ok in results if not ok]
+    # ✅ process results (IMPORTANT FIX)
+    alive = [(p, s) for p, ok, s in results if ok and s is not None]
+    fast = [p for p, s in alive if s < 1000]
+    dead = [p for p, ok, s in results if not ok]
 
-    # ✅ result summary
+    # ✅ summary (use FAST not alive)
     await msg.edit_text(
-        f"✅ Scan Complete\n\n🟢 Alive: {len(alive)}\n🔴 Dead: {len(dead)}"
+        f"✅ Scan Complete\n\n🟢 Alive: {len(fast)}\n🔴 Dead: {len(dead)}"
     )
 
-    # 💀 create txt file for alive proxies
-    if alive:
+    # 📤 create + send file
+    if fast:
         with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt") as f:
-            f.write("\n".join(alive))
+            f.write("\n".join(fast))  # ⚠️ FIX
             file_name = f.name
 
-        # 📤 send file
         await message.answer_document(
             InputFile(file_name),
             caption="🟢 Alive proxies list"
