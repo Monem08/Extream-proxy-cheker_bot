@@ -12,6 +12,7 @@ from bot.web import app
 import bot.handlers.start
 import bot.handlers.menu
 import bot.handlers.scanner
+import bot.handlers.live
 
 
 # 🔧 Logging
