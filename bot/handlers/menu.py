@@ -7,14 +7,21 @@ from bot.states.user_state import set_state, reset_state
 async def start_scan(callback: types.CallbackQuery):
     user_id = callback.from_user.id
 
-    # ⚠️ cancel previous task
+    # 💀 delete old message
+    old_msg = get_message(user_id)
+    if old_msg:
+        try:
+            await callback.message.bot.delete_message(callback.message.chat.id, old_msg)
+        except:
+            pass
+
+    # cancel previous task
     if get_task(user_id):
         cancel_task(user_id)
-        await callback.message.delete()
         await callback.message.answer("⚠️ Previous task cancelled")
 
-    # start new task
     start_task(user_id, "SCAN")
     set_state(user_id, "WAITING_PROXY")
 
-    await callback.message.answer("📂 Send proxy list (ip:port)")
+    msg = await callback.message.answer("📂 Send proxy list (ip:port)")
+    save_message(user_id, msg.message_id)
