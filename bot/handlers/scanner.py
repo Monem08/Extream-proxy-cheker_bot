@@ -6,10 +6,6 @@ from bot.states.user_state import get_state, reset_state
 from bot.services.task_manager import cancel_task
 from bot.services.message_manager import delete_message
 from bot.services.ban_service import is_banned
-
-if is_banned(user_id):
-    await message.answer("🚫 You are banned")
-    return
 import tempfile
 
 
@@ -17,6 +13,10 @@ import tempfile
 async def scan_proxies(message: types.Message):
     user_id = message.from_user.id
 
+    # 🚫 ban check
+    if is_banned(user_id):
+        await message.answer("🚫 You are banned")
+        return
     # ❌ block invalid action
     if get_state(user_id) != "WAITING_PROXY":
         await message.answer("❌ Invalid action")
