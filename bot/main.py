@@ -13,7 +13,7 @@ import bot.handlers.start
 import bot.handlers.menu
 import bot.handlers.scanner
 import bot.handlers.live
-
+import bot.handlers.owner
 
 # 🔧 Logging
 logging.basicConfig(level=logging.ERROR)
