@@ -17,7 +17,8 @@ from bot.services.role_service import get_role
 import tempfile
 
 
-@dp.message_handler(lambda m: ":" in m.text and not m.text.startswith("/"))
+# 💀 SAFE FILTER (FIXED)
+@dp.message_handler(lambda m: m.text and ":" in m.text and not m.text.startswith("/"), state="*")
 async def scan_proxies(message: types.Message):
     user_id = message.from_user.id
 
@@ -50,24 +51,41 @@ async def scan_proxies(message: types.Message):
 
     await delete_message(user_id)
 
+    # ✅ CLEAN PROXY LIST
     proxies = [p.strip() for p in message.text.split("\n") if ":" in p]
+
+    if not proxies:
+        await message.answer("❌ No valid proxies found")
+        return
 
     msg = await message.answer("🚀 Scanning...")
 
-    results = await run_scan(proxies)
+    try:
+        results = await run_scan(proxies)
 
-    alive = [(p, s) for p, ok, s in results if ok and s]
-    fast = [p for p, s in alive if s < 1000]
-    dead = [p for p, ok, s in results if not ok]
+        alive = [(p, s) for p, ok, s in results if ok and s]
+        fast = [p for p, s in alive if s < 1000]
+        dead = [p for p, ok, s in results if not ok]
 
-    await msg.edit_text(f"✅ Done\n🟢 {len(fast)}\n🔴 {len(dead)}")
+        await msg.edit_text(
+            f"✅ Scan Complete\n\n🟢 Alive: {len(fast)}\n🔴 Dead: {len(dead)}"
+        )
 
-    if fast:
-        with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt") as f:
-            f.write("\n".join(fast))
-            file_name = f.name
+        # 📤 SEND FILE
+        if fast:
+            with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt") as f:
+                f.write("\n".join(fast))
+                file_name = f.name
 
-        await message.answer_document(InputFile(file_name))
+            await message.answer_document(
+                InputFile(file_name),
+                caption="🟢 Alive proxies list"
+            )
 
+    except Exception as e:
+        print("SCAN ERROR:", e)
+        await message.answer("⚠️ Scan failed")
+
+    # 🔄 RESET
     reset_state(user_id)
     cancel_task(user_id)
