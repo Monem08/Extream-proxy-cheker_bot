@@ -8,6 +8,11 @@ from bot.services.task_manager import get_task, cancel_task
 from bot.states.user_state import reset_state
 from bot.services.user_service import add_user
 from bot.services.role_service import get_role
+from bot.services.ban_service import is_banned
+
+if is_banned(user_id):
+    await message.answer("🚫 You are banned")
+    return
 import asyncio
 
 
