@@ -13,7 +13,7 @@ from bot.services.ban_service import is_banned
 import asyncio
 
 
-@dp.message_handler(commands=["start"])
+@dp.message_handler(commands=["start"], state="*")
 async def start_cmd(message: types.Message):
     user_id = message.from_user.id
     name = message.from_user.first_name
