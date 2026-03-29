@@ -3,12 +3,12 @@ import logging
 
 # 🤖 aiogram
 from aiogram import executor
-from bot.loader import dp
+from bot.loader import dp, bot
 
 # 🌐 web (cron)
 from bot.web import app
 
-# 🔥 IMPORT HANDLERS (VERY IMPORTANT)
+# 🔥 IMPORT HANDLERS
 import bot.handlers.start
 import bot.handlers.menu
 import bot.handlers.scanner
@@ -16,7 +16,7 @@ import bot.handlers.live
 import bot.handlers.owner
 
 # 🔧 Logging
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.INFO)
 
 
 # 🌐 run web server
@@ -28,6 +28,9 @@ def run_web():
 async def on_startup(dp):
     print("🤖 Bot started successfully!")
     print("🌍 Web server running (cron ready)")
+
+    # 💀 VERY IMPORTANT FIX
+    await bot.delete_webhook(drop_pending_updates=True)
 
 
 # 🛑 shutdown
