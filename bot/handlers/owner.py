@@ -1,105 +1,73 @@
 from aiogram import types
-from bot.loader import dp, bot
+from bot.loader import dp
+
+from bot.services.role_service import get_role
+from bot.services.maintenance_service import set_maintenance, is_maintenance
+
+from bot.services.rate_limiter import is_allowed
+from bot.services.anti_spam import is_spamming
+from bot.services.security_service import add_strike
 from bot.config import OWNER_ID
 
-from bot.services.role_service import add_admin, remove_admin, load_admins
-from bot.services.user_service import get_all_users
-from bot.services.broadcast_service import broadcast
-from bot.services.ban_service import ban_user, unban_user
 
+# 👑 MAINTENANCE TOGGLE
+@dp.callback_query_handler(lambda c: c.data == "maintenance")
+async def toggle_maintenance(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    role = get_role(user_id)
 
-# 👑 ADD ADMIN
-@dp.message_handler(commands=["add_admin"])
-async def add_admin_cmd(message: types.Message):
-    if message.from_user.id != OWNER_ID:
+    # ❌ Only owner/admin allowed
+    if role not in ["owner", "admin"]:
+        await callback.answer("❌ Not allowed", show_alert=True)
         return
+
+    # 👑 OWNER BYPASS SECURITY
+    if user_id != OWNER_ID:
+        if is_spamming(user_id):
+            banned = add_strike(user_id)
+            if banned:
+                await callback.message.answer("🚫 You are banned for spam")
+            else:
+                await callback.message.answer("⚠️ Stop spamming!")
+            return
+
+        if not is_allowed(user_id):
+            await callback.answer("⏳ Slow down bro...", show_alert=True)
+            return
+
+    current = is_maintenance()
+    new_state = not current
+    set_maintenance(new_state)
+
+    status = "ON 🔒" if new_state else "OFF ✅"
 
     try:
-        user_id = int(message.get_args())
-        add_admin(user_id)
-        await message.answer(f"✅ Admin added: {user_id}")
+        await callback.message.edit_text(f"⚙️ Maintenance Mode: {status}")
     except:
-        await message.answer("❌ Usage: /add_admin 123456")
+        await callback.message.answer(f"⚙️ Maintenance Mode: {status}")
+
+    await callback.answer()
 
 
-# ❌ REMOVE ADMIN
-@dp.message_handler(commands=["remove_admin"])
-async def remove_admin_cmd(message: types.Message):
-    if message.from_user.id != OWNER_ID:
+# 👑 ADMIN PANEL (OPTIONAL BUTTON)
+@dp.callback_query_handler(lambda c: c.data == "admin_panel")
+async def admin_panel(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    role = get_role(user_id)
+
+    if role not in ["owner", "admin"]:
+        await callback.answer("❌ Not allowed", show_alert=True)
         return
 
-    try:
-        user_id = int(message.get_args())
-        remove_admin(user_id)
-        await message.answer(f"❌ Admin removed: {user_id}")
-    except:
-        await message.answer("❌ Usage: /remove_admin 123456")
+    text = """👑 ADMIN PANEL
 
+⚙️ Controls:
+• Toggle Maintenance
+• Manage Users (coming soon)
+• Stats (via Info)
 
-# 📊 STATS
-@dp.message_handler(commands=["stats"])
-async def stats_cmd(message: types.Message):
-    if message.from_user.id != OWNER_ID:
-        return
-
-    users = len(get_all_users())
-    admins = len(load_admins())
-
-    await message.answer(
-        f"""📊 Stats
-
-👤 Users: {users}
-⚡ Admins: {admins}
+🔥 Control Access Enabled
 """
-    )
 
-
-# 📢 BROADCAST
-@dp.message_handler(commands=["broadcast"])
-async def broadcast_cmd(message: types.Message):
-    if message.from_user.id != OWNER_ID:
-        return
-
-    text = message.get_args()
-
-    if not text:
-        await message.answer("❌ Usage: /broadcast your message")
-        return
-
-    ok, fail = await broadcast(bot, text)
-
-    await message.answer(
-        f"""📢 Broadcast Done
-
-✅ Sent: {ok}
-❌ Failed: {fail}
-"""
-    )
-
-
-# 🚫 BAN USER
-@dp.message_handler(commands=["ban"])
-async def ban_cmd(message: types.Message):
-    if message.from_user.id != OWNER_ID:
-        return
-
-    try:
-        user_id = int(message.get_args())
-        ban_user(user_id)
-        await message.answer(f"🚫 Banned: {user_id}")
-    except:
-        await message.answer("❌ Usage: /ban 123456")
-
-
-# ✅ UNBAN USER
-@dp.message_handler(commands=["unban"])
-async def unban_cmd(message: types.Message):
-    if message.from_user.id != OWNER_ID:
-        return
-
-    try:
-        user_id = int(message.get_args())
-        unban_user(user_id)
-        await message.answer(f"✅ Unbanned: {user_id}")
-    except:
-        await message.answer("❌ Usage: /unban 123456")
+    await callback.message.answer(text)
+    await callback.answer()
