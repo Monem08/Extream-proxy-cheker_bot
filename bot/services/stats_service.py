@@ -22,3 +22,25 @@ def inc_stat(key):
 
 def get_stats():
     return load_stats()
+    
+stats = {
+    "users": set(),
+    "scans": 0,
+    "live": 0
+}
+
+def add_user(user_id):
+    stats["users"].add(user_id)
+
+def add_scan():
+    stats["scans"] += 1
+
+def add_live():
+    stats["live"] += 1
+
+def get_stats():
+    return {
+        "users": len(stats["users"]),
+        "scans": stats["scans"],
+        "live": stats["live"]
+    }
