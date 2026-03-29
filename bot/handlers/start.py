@@ -10,11 +10,6 @@ from bot.services.user_service import add_user
 from bot.services.role_service import get_role
 from bot.services.ban_service import is_banned
 
-# 🔥 NEW IMPORT
-from bot.services.rate_limiter import is_allowed
-from bot.services.anti_spam import is_spamming
-from bot.services.security_service import add_strike
-
 import asyncio
 
 
@@ -28,26 +23,12 @@ async def start_cmd(message: types.Message):
         await message.answer("🚫 You are banned")
         return
 
-    # 💀 ANTI-SPAM
-    if is_spamming(user_id):
-        banned = add_strike(user_id)
-        if banned:
-            await message.answer("🚫 You are banned for spam")
-        else:
-            await message.answer("⚠️ Stop spamming!")
-        return
-
-    # ⏱ RATE LIMIT
-    if not is_allowed(user_id):
-        await message.answer("⏳ Slow down bro...")
-        return
-
-    # 💀 CANCEL OLD TASK
+    # 💀 cancel old task
     if get_task(user_id):
         cancel_task(user_id)
         reset_state(user_id)
 
-    # 🔐 JOIN CHECK
+    # 🔐 join check
     joined = await is_joined(bot, user_id)
     if not joined:
         await message.answer(
@@ -56,19 +37,17 @@ async def start_cmd(message: types.Message):
         )
         return
 
-    # 👤 SAVE USER
     add_user(user_id)
-
     role = get_role(user_id)
 
-    # ⚡ LOADING UI
+    # ⚡ loading
     msg = await message.answer("⚡ Initializing...")
 
     for p in range(10, 101, 10):
         await asyncio.sleep(0.2)
         await msg.edit_text(f"⚡ Booting...\n{progress_bar(p)}")
 
-    # ✅ FINAL UI
+    # ✅ FINAL MENU (NOW WILL SHOW 💀🔥)
     await msg.edit_text(
         f"""✅ System Ready
 
