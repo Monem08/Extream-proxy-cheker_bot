@@ -12,22 +12,29 @@ from bot.services.ban_service import is_banned
 import asyncio
 
 
-@dp.message_handler(lambda m: ":" in m.text)
-async def scan_proxies(message: types.Message):
+@dp.message_handler(commands=["start"])
+async def start_cmd(message: types.Message):
     user_id = message.from_user.id
+    name = message.from_user.first_name
 
     # 🚫 ban check
     if is_banned(user_id):
         await message.answer("🚫 You are banned")
         return
 
-    # 💀 Cancel previous task if exists
+    # 👤 register user
+    add_user(user_id, name)
+
+    # 🎭 role detect
+    role = get_role(user_id)
+
+    # 💀 cancel previous task
     if get_task(user_id):
         cancel_task(user_id)
         reset_state(user_id)
         await message.answer("⚠️ Previous task cancelled")
 
-    # 🔐 Force join check
+    # 🔐 join check
     joined = await is_joined(bot, user_id)
 
     if not joined:
@@ -37,7 +44,7 @@ async def scan_proxies(message: types.Message):
         )
         return
 
-    # ⚡ Animation start
+    # ⚡ animation
     msg = await message.answer("⚡ Initializing...")
 
     for p in range(10, 101, 10):
@@ -46,9 +53,9 @@ async def scan_proxies(message: types.Message):
             f"⚡ Booting Proxy OS...\n\n{progress_bar(p)}"
         )
 
-    # ✅ Final UI
+    # ✅ final UI
     await msg.edit_text(
-    f"""✅ System Ready
+        f"""✅ System Ready
 
 👑 Welcome {name}
 
@@ -61,9 +68,11 @@ async def scan_proxies(message: types.Message):
 • Live API: Active 🌍
 
 🚀 Choose an action below:""",
-    reply_markup=main_menu(),
-)
+        reply_markup=main_menu(),
+    )
 
+
+# ✅ verify button
 @dp.callback_query_handler(lambda c: c.data == "verify_join")
 async def verify(callback: types.CallbackQuery):
     user_id = callback.from_user.id
