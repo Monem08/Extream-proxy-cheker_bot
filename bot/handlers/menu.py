@@ -7,27 +7,22 @@ from bot.states.user_state import set_state, reset_state
 
 
 # 🚀 START SCAN (DELETE + NEW SCREEN)
-@dp.callback_query_handler(lambda c: c.data == "start_scan")
-async def start_scan(callback: types.CallbackQuery):
+@dp.callback_query_handler(lambda c: c.data == "upload")
+async def upload_proxy(callback: types.CallbackQuery):
     await callback.answer()
     user_id = callback.from_user.id
 
-    # 💀 DELETE MENU MESSAGE
+    # 💀 delete menu
     try:
         await callback.message.delete()
     except:
         pass
 
-    # cancel previous task
-    if get_task(user_id):
-        cancel_task(user_id)
+    # set state
+    set_state(user_id, "WAITING_FILE")
 
-    start_task(user_id, "SCAN")
-    set_state(user_id, "WAITING_PROXY")
-
-    # ✅ NEW SCREEN
     await callback.message.answer(
-        "📂 Send proxy list (ip:port)",
+        "📂 Send .txt file with proxies",
         reply_markup=cancel_kb()
     )
 
