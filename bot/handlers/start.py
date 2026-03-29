@@ -6,6 +6,8 @@ from bot.middlewares.access_guard import is_joined
 from bot.config import GROUP_LINK
 from bot.services.task_manager import get_task, cancel_task
 from bot.states.user_state import reset_state
+from bot.services.user_service import add_user
+from bot.services.role_service import get_role
 import asyncio
 
 
