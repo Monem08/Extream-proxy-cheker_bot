@@ -11,6 +11,12 @@ import asyncio
 async def start_cmd(message: types.Message):
     user_id = message.from_user.id
 
+    # 💀 cancel previous task if exists
+    if get_task(user_id):
+        cancel_task(user_id)
+        reset_state(user_id)
+        await message.answer("⚠️ Previous task cancelled")
+
     joined = await is_joined(bot, user_id)
 
     if not joined:
@@ -20,7 +26,6 @@ async def start_cmd(message: types.Message):
         )
         return
 
-    # ✅ EVERYTHING MUST BE INSIDE FUNCTION
     msg = await message.answer("⚡ Initializing...")
 
     for p in range(10, 101, 10):
@@ -33,19 +38,5 @@ async def start_cmd(message: types.Message):
         "✅ System Ready\n\n👑 Welcome Operator",
         reply_markup=main_menu(),
     )
-
-
-@dp.callback_query_handler(lambda c: c.data == "verify_join")
-async def verify(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-
-    joined = await is_joined(bot, user_id)
-
-    if joined:
-        await callback.message.delete()
-        await callback.message.answer(
-            "✅ Access Granted",
-            reply_markup=main_menu()
-        )
     else:
         await callback.answer("❌ Join first", show_alert=True)
