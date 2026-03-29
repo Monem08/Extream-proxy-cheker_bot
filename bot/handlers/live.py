@@ -1,34 +1,24 @@
 from aiogram import types
 from bot.loader import dp
+
 from bot.services.live_proxy_service import fetch_proxies
 from bot.services.scanner_service import run_scan
 from bot.keyboards.cancel_kb import cancel_kb
 
-# 🔥 SECURITY
-from bot.services.rate_limiter import is_allowed
-from bot.services.anti_spam import is_spamming
-from bot.services.security_service import add_strike
-from bot.config import OWNER_ID
+from bot.services.maintenance_service import is_maintenance
+from bot.services.role_service import get_role
 
 
 @dp.callback_query_handler(lambda c: c.data == "live")
 async def live_proxy(callback: types.CallbackQuery):
     user_id = callback.from_user.id
 
-    # 👑 OWNER BYPASS
-    if user_id != OWNER_ID:
+    role = get_role(user_id)
 
-        if is_spamming(user_id):
-            banned = add_strike(user_id)
-            if banned:
-                await callback.message.answer("🚫 You are banned for spam")
-            else:
-                await callback.message.answer("⚠️ Stop spamming!")
-            return
-
-        if not is_allowed(user_id):
-            await callback.answer("⏳ Slow down bro...", show_alert=True)
-            return
+    # 💀 MAINTENANCE
+    if is_maintenance() and role not in ["owner", "admin"]:
+        await callback.answer("🚧 Bot Under Maintenance", show_alert=True)
+        return
 
     await callback.answer()
 
@@ -37,31 +27,18 @@ async def live_proxy(callback: types.CallbackQuery):
     except:
         pass
 
-    msg = await callback.message.answer("🌍 Fetching proxies...")
+    msg = await callback.message.answer("🌍 Fetching...")
 
-    try:
-        proxies = await fetch_proxies()
+    proxies = await fetch_proxies()
 
-        if not proxies:
-            await msg.edit_text("❌ Failed to fetch proxies", reply_markup=cancel_kb())
-            return
+    if not proxies:
+        await msg.edit_text("❌ Failed", reply_markup=cancel_kb())
+        return
 
-        results = await run_scan(proxies[:50])
+    results = await run_scan(proxies[:50])
 
-        # 💀 FIXED FORMAT
-        alive = [(p, s) for p, ok, s in results if ok and s is not None]
-        fast = [p for p, s in alive if s < 1000]
+    alive = [p for p, ok in results if ok]
 
-        text = "🌍 Live Proxies\n\n"
+    text = f"🟢 Alive: {len(alive)}\n\n" + "\n".join(alive[:10]) if alive else "❌ None"
 
-        if not fast:
-            text += "❌ No fast proxies"
-        else:
-            text += f"⚡ Fast Alive: {len(fast)}\n\n"
-            text += "\n".join(fast[:10])
-
-        await msg.edit_text(text, reply_markup=cancel_kb())
-
-    except Exception as e:
-        print("LIVE ERROR:", e)
-        await msg.edit_text("❌ Error while fetching proxies")
+    await msg.edit_text(text, reply_markup=cancel_kb())
