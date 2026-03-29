@@ -1,82 +1,80 @@
 from aiogram import types
 from bot.loader import dp
-from bot.keyboards.cancel_kb import cancel_kb
 from bot.keyboards.main_menu import main_menu
-from bot.services.task_manager import start_task, cancel_task, get_task
-from bot.states.user_state import set_state, reset_state
+from bot.services.message_manager import set_message
+
+# 🔥 ADD THIS
+from bot.services.rate_limiter import is_allowed
+from bot.services.anti_spam import is_spamming
+from bot.services.security_service import add_strike
+from bot.config import OWNER_ID
 
 
-# 🚀 START SCAN
-@dp.callback_query_handler(lambda c: c.data == "start_scan")
-async def start_scan(callback: types.CallbackQuery):
-    await callback.answer()
+@dp.callback_query_handler()
+async def handle_menu(callback: types.CallbackQuery):
     user_id = callback.from_user.id
 
-    # 💀 RESET STATE FIRST (IMPORTANT)
-    reset_state(user_id)
+    # 👑 OWNER BYPASS
+    if user_id != OWNER_ID:
 
-    # delete current menu
+        # 🚫 anti spam
+        if is_spamming(user_id):
+            banned = add_strike(user_id)
+            if banned:
+                await callback.message.answer("🚫 You are banned for spam")
+            else:
+                await callback.message.answer("⚠️ Stop spamming!")
+            return
+
+        # ⏱ rate limit
+        if not is_allowed(user_id):
+            await callback.answer("⏳ Slow down bro...", show_alert=True)
+            return
+
+    data = callback.data
+
     try:
         await callback.message.delete()
     except:
         pass
 
-    # cancel previous task
-    if get_task(user_id):
-        cancel_task(user_id)
+    # 💀 MAIN MENU ROUTER
+    if data == "menu":
+        msg = await callback.message.answer(
+            "🚀 Choose an option:",
+            reply_markup=main_menu()
+        )
+        set_message(user_id, msg.message_id)
 
-    # start new scan
-    start_task(user_id, "SCAN")
-    set_state(user_id, "WAITING_PROXY")
+    elif data == "start_scan":
+        msg = await callback.message.answer(
+            "📂 Send proxy list (ip:port)"
+        )
+        set_message(user_id, msg.message_id)
 
-    await callback.message.answer(
-        "📂 Send proxy list (ip:port)",
-        reply_markup=cancel_kb()
-    )
+    elif data == "upload":
+        msg = await callback.message.answer(
+            "📂 Send .txt file with proxies"
+        )
+        set_message(user_id, msg.message_id)
 
+    elif data == "live":
+        msg = await callback.message.answer(
+            "🌍 Fetching proxies..."
+        )
+        set_message(user_id, msg.message_id)
 
-# 📂 UPLOAD PROXY
-@dp.callback_query_handler(lambda c: c.data == "upload")
-async def upload_proxy(callback: types.CallbackQuery):
+    elif data == "settings":
+        msg = await callback.message.answer(
+            "⚙️ Settings coming soon..."
+        )
+        set_message(user_id, msg.message_id)
+
+    elif data == "cancel":
+        msg = await callback.message.answer(
+            "🚀 Back to menu",
+            reply_markup=main_menu()
+        )
+        set_message(user_id, msg.message_id)
+
     await callback.answer()
-    user_id = callback.from_user.id
-
-    # 💀 RESET STATE FIRST
-    reset_state(user_id)
-
-    # delete current menu
-    try:
-        await callback.message.delete()
-    except:
-        pass
-
-    # set upload mode
-    set_state(user_id, "WAITING_FILE")
-
-    await callback.message.answer(
-        "📂 Send .txt file with proxies",
-        reply_markup=cancel_kb()
-    )
-
-
-# ❌ CANCEL ACTION
-@dp.callback_query_handler(lambda c: c.data == "cancel_action")
-async def cancel_action(callback: types.CallbackQuery):
-    await callback.answer()
-    user_id = callback.from_user.id
-
-    # cancel + reset
-    cancel_task(user_id)
-    reset_state(user_id)
-
-    # delete current screen
-    try:
-        await callback.message.delete()
-    except:
-        pass
-
-    # back to menu
-    await callback.message.answer(
-        "✅ System Ready\n\n👑 Welcome Operator",
-        reply_markup=main_menu()
-    )
