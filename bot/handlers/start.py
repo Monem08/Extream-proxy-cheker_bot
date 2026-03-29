@@ -9,16 +9,17 @@ from bot.states.user_state import reset_state
 from bot.services.user_service import add_user
 from bot.services.role_service import get_role
 from bot.services.ban_service import is_banned
-
-if is_banned(user_id):
-    await message.answer("🚫 You are banned")
-    return
 import asyncio
 
 
-@dp.message_handler(commands=["start"])
-async def start_cmd(message: types.Message):
+@dp.message_handler(lambda m: ":" in m.text)
+async def scan_proxies(message: types.Message):
     user_id = message.from_user.id
+
+    # 🚫 ban check
+    if is_banned(user_id):
+        await message.answer("🚫 You are banned")
+        return
 
     # 💀 Cancel previous task if exists
     if get_task(user_id):
