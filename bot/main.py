@@ -3,12 +3,12 @@ import logging
 
 # 🤖 aiogram
 from aiogram import executor
-from bot.loader import dp, bot as tg_bot  # 🔥 FIXED
+from bot.loader import dp, bot as tg_bot
 
 # 🌐 web (cron)
 from bot.web import app
 
-# 🔥 IMPORT HANDLERS (IMPORTANT)
+# 🔥 IMPORT HANDLERS
 import bot.handlers.start
 import bot.handlers.menu
 import bot.handlers.scanner
@@ -16,22 +16,22 @@ import bot.handlers.live
 import bot.handlers.owner
 
 
-# 🔧 Logging (clean)
+# 🔧 Logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
-# 🌐 run web server
+# 🌐 run web server (SAFE)
 def run_web():
-    app.run(host="0.0.0.0", port=10000)
-
-
-# 🔥 safe thread start
-def start_web():
     try:
-        run_web()
+        app.run(
+            host="0.0.0.0",
+            port=10000,
+            debug=False,
+            use_reloader=False  # 💀 IMPORTANT FIX
+        )
     except Exception as e:
         print(f"🌐 Web error: {e}")
 
@@ -41,8 +41,11 @@ async def on_startup(dp):
     print("🤖 Bot started successfully!")
     print("🌍 Web server running")
 
-    # 💀 FIXED (NO MORE ERROR)
-    await tg_bot.delete_webhook(drop_pending_updates=True)
+    # 💀 FIX: remove webhook
+    try:
+        await tg_bot.delete_webhook(drop_pending_updates=True)
+    except Exception as e:
+        print("Webhook error:", e)
 
 
 # 🛑 shutdown
@@ -51,10 +54,10 @@ async def on_shutdown(dp):
 
 
 if __name__ == "__main__":
-    # 🌐 start web server in background
-    threading.Thread(target=start_web, daemon=True).start()
+    # 🌐 start web in background
+    threading.Thread(target=run_web, daemon=True).start()
 
-    # 🤖 start bot
+    # 🤖 start bot polling
     executor.start_polling(
         dp,
         skip_updates=True,
