@@ -15,7 +15,7 @@ from bot.services.security_service import add_strike
 import tempfile
 
 
-@dp.message_handler(lambda m: ":" in m.text)
+@dp.message_handler(lambda m: ":" in m.text and not m.text.startswith("/"))
 async def scan_proxies(message: types.Message):
     user_id = message.from_user.id
 
