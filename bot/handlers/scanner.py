@@ -17,35 +17,37 @@ async def scan_proxies(message: types.Message):
     if is_banned(user_id):
         await message.answer("🚫 You are banned")
         return
-    # ❌ block invalid action
+
+    # ❌ invalid state
     if get_state(user_id) != "WAITING_PROXY":
         await message.answer("❌ Invalid action")
         return
 
-    # 💀 delete previous UI message
-    delete_message(user_id)
+    # 💀 delete previous UI
+    await delete_message(user_id)
 
-    proxies = message.text.split("\n")
+    # ✅ clean proxy list
+    proxies = [p.strip() for p in message.text.split("\n") if ":" in p]
 
     msg = await message.answer("🚀 Scanning...")
 
     # ⚡ scan
     results = await run_scan(proxies)
 
-    # ✅ process results (IMPORTANT FIX)
+    # ✅ process
     alive = [(p, s) for p, ok, s in results if ok and s is not None]
     fast = [p for p, s in alive if s < 1000]
     dead = [p for p, ok, s in results if not ok]
 
-    # ✅ summary (use FAST not alive)
+    # ✅ summary
     await msg.edit_text(
         f"✅ Scan Complete\n\n🟢 Alive: {len(fast)}\n🔴 Dead: {len(dead)}"
     )
 
-    # 📤 create + send file
+    # 📤 file
     if fast:
         with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt") as f:
-            f.write("\n".join(fast))  # ⚠️ FIX
+            f.write("\n".join(fast))
             file_name = f.name
 
         await message.answer_document(
@@ -53,6 +55,6 @@ async def scan_proxies(message: types.Message):
             caption="🟢 Alive proxies list"
         )
 
-    # 🔄 reset system
+    # 🔄 reset
     reset_state(user_id)
     cancel_task(user_id)
