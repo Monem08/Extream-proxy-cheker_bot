@@ -42,10 +42,21 @@ async def start_cmd(message: types.Message):
 
     # ✅ Final UI
     await msg.edit_text(
-        "✅ System Ready\n\n👑 Welcome Operator",
-        reply_markup=main_menu(),
-    )
+    f"""✅ System Ready
 
+👑 Welcome {name}
+
+🆔 ID: {user_id}
+🎭 Role: {role}
+
+📊 Status:
+• System: Online 🟢
+• Scanner: Ready ⚡
+• Live API: Active 🌍
+
+🚀 Choose an action below:""",
+    reply_markup=main_menu(),
+)
 
 @dp.callback_query_handler(lambda c: c.data == "verify_join")
 async def verify(callback: types.CallbackQuery):
