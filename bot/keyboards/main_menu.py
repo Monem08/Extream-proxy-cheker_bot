@@ -7,6 +7,8 @@ def main_menu():
         InlineKeyboardButton("📂 Upload Proxy", callback_data="upload"),
         InlineKeyboardButton("🌍 Live Proxies", callback_data="live"),
         InlineKeyboardButton("⚙️ Settings", callback_data="settings"),
+        InlineKeyboardButton("⚙️ Maintenance", callback_data="maintenance")
+        InlineKeyboardButton("👑 Admin", callback_data="admin_panel")
     )
     return kb
 
