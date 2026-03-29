@@ -6,6 +6,10 @@ from bot.states.user_state import get_state, reset_state
 from bot.services.task_manager import cancel_task
 from bot.services.message_manager import delete_message
 from bot.services.ban_service import is_banned
+
+from bot.services.rate_limiter import is_allowed
+from bot.services.anti_spam import is_spamming
+from bot.services.security_service import add_strike
 import tempfile
 
 
