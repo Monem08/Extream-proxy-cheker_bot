@@ -1,30 +1,47 @@
+import threading
+import logging
+
+# 🤖 aiogram
 from aiogram import executor
 from bot.loader import dp
+
+# 🌐 web (cron)
+from bot.web import app
+
+# 🔥 IMPORT HANDLERS (VERY IMPORTANT)
 import bot.handlers.start
 import bot.handlers.menu
 import bot.handlers.scanner
 
-from flask import Flask
-import threading
-import asyncio
 
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "Bot is alive 😈"
+# 🔧 Logging
+logging.basicConfig(level=logging.INFO)
 
 
-def run_bot():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    executor.start_polling(dp, skip_updates=True)
-
-
-def start_bot():
-    threading.Thread(target=run_bot).start()
+# 🌐 run web server
+def run_web():
     app.run(host="0.0.0.0", port=10000)
 
 
+# 🚀 startup
+async def on_startup(dp):
+    print("🤖 Bot started successfully!")
+    print("🌍 Web server running (cron ready)")
+
+
+# 🛑 shutdown
+async def on_shutdown(dp):
+    print("🛑 Bot stopped!")
+
+
 if __name__ == "__main__":
-    start_bot()
+    # 🌐 start web in background
+    threading.Thread(target=run_web, daemon=True).start()
+
+    # 🤖 start bot
+    executor.start_polling(
+        dp,
+        skip_updates=True,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown,
+    )
