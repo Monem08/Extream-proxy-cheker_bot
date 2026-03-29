@@ -1,30 +1,37 @@
 from aiogram import types
 from bot.loader import dp
+from bot.services.live_proxy_service import fetch_proxies
 from bot.services.scanner_service import run_scan
-import aiohttp
+from bot.keyboards.cancel_kb import cancel_kb
 
 
 @dp.callback_query_handler(lambda c: c.data == "live")
 async def live_proxy(callback: types.CallbackQuery):
     await callback.answer()
-    await callback.message.delete()
+
+    try:
+        await callback.message.delete()
+    except:
+        pass
 
     msg = await callback.message.answer("🌍 Fetching proxies...")
 
-    url = "https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=3000&country=all"
+    proxies = await fetch_proxies()
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            text = await resp.text()
+    if not proxies:
+        await msg.edit_text("❌ Failed to fetch proxies", reply_markup=cancel_kb())
+        return
 
-    proxies = text.split("\n")[:100]
-
-    await msg.edit_text("🚀 Scanning live proxies...")
-
-    results = await run_scan(proxies)
+    results = await run_scan(proxies[:50])
 
     alive = [p for p, ok in results if ok]
 
-    await msg.edit_text(
-        f"🌍 Live Scan Done\n\n🟢 Alive: {len(alive)}"
-    )
+    text = "🌍 Live Proxies\n\n"
+
+    if not alive:
+        text += "❌ No alive proxies"
+    else:
+        text += f"🟢 Alive: {len(alive)}\n\n"
+        text += "\n".join(alive[:10])
+
+    await msg.edit_text(text, reply_markup=cancel_kb())
