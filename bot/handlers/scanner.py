@@ -7,9 +7,11 @@ from bot.services.task_manager import cancel_task
 from bot.services.message_manager import delete_message
 from bot.services.ban_service import is_banned
 
+# 🔥 NEW IMPORT
 from bot.services.rate_limiter import is_allowed
 from bot.services.anti_spam import is_spamming
 from bot.services.security_service import add_strike
+
 import tempfile
 
 
@@ -17,38 +19,52 @@ import tempfile
 async def scan_proxies(message: types.Message):
     user_id = message.from_user.id
 
-    # 🚫 ban check
+    # 🚫 BAN CHECK
     if is_banned(user_id):
         await message.answer("🚫 You are banned")
         return
 
-    # ❌ invalid state
+    # 💀 ANTI-SPAM SYSTEM
+    if is_spamming(user_id):
+        banned = add_strike(user_id)
+        if banned:
+            await message.answer("🚫 You are banned for spam")
+        else:
+            await message.answer("⚠️ Stop spamming!")
+        return
+
+    # ⏱ RATE LIMIT
+    if not is_allowed(user_id):
+        await message.answer("⏳ Slow down bro...")
+        return
+
+    # ❌ STATE CHECK
     if get_state(user_id) != "WAITING_PROXY":
         await message.answer("❌ Invalid action")
         return
 
-    # 💀 delete previous UI
+    # 💀 DELETE OLD UI
     await delete_message(user_id)
 
-    # ✅ clean proxy list
+    # ✅ CLEAN PROXY LIST
     proxies = [p.strip() for p in message.text.split("\n") if ":" in p]
 
     msg = await message.answer("🚀 Scanning...")
 
-    # ⚡ scan
+    # ⚡ SCAN
     results = await run_scan(proxies)
 
-    # ✅ process
+    # ✅ PROCESS
     alive = [(p, s) for p, ok, s in results if ok and s is not None]
     fast = [p for p, s in alive if s < 1000]
     dead = [p for p, ok, s in results if not ok]
 
-    # ✅ summary
+    # 📊 RESULT
     await msg.edit_text(
         f"✅ Scan Complete\n\n🟢 Alive: {len(fast)}\n🔴 Dead: {len(dead)}"
     )
 
-    # 📤 file
+    # 📤 SEND FILE
     if fast:
         with tempfile.NamedTemporaryFile(delete=False, mode="w", suffix=".txt") as f:
             f.write("\n".join(fast))
@@ -59,6 +75,6 @@ async def scan_proxies(message: types.Message):
             caption="🟢 Alive proxies list"
         )
 
-    # 🔄 reset
+    # 🔄 RESET
     reset_state(user_id)
     cancel_task(user_id)
