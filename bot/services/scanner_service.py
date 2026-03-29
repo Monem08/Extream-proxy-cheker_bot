@@ -1,8 +1,9 @@
 import aiohttp
 import asyncio
+import time
 
 # ⚙️ CONFIG
-TIMEOUT = 5
+TIMEOUT = 3
 CONCURRENT_LIMIT = 50
 
 
@@ -10,13 +11,15 @@ async def check_proxy(session, proxy):
     proxy = proxy.strip()
 
     if not proxy:
-        return (proxy, False)
+        return (proxy, False, None)
 
-    # ensure format
+    # format fix
     if "://" not in proxy:
         proxy_url = f"http://{proxy}"
     else:
         proxy_url = proxy
+
+    start = time.time()
 
     try:
         async with session.get(
@@ -25,11 +28,12 @@ async def check_proxy(session, proxy):
             timeout=aiohttp.ClientTimeout(total=TIMEOUT),
         ) as resp:
             if resp.status == 200:
-                return (proxy, True)
+                speed = int((time.time() - start) * 1000)  # ms
+                return (proxy, True, speed)
     except:
         pass
 
-    return (proxy, False)
+    return (proxy, False, None)
 
 
 async def run_scan(proxies):
