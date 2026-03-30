@@ -2,7 +2,7 @@ from aiogram import types
 from bot.loader import dp
 
 from bot.services.role_service import get_role
-from bot.services.stats_service import get_stats
+from bot.services.admin_storage import get_totals
 
 from bot.services.message_manager import delete_message, save_message
 from bot.keyboards.cancel_kb import cancel_kb
@@ -22,38 +22,29 @@ async def info_panel(callback: types.CallbackQuery):
             await callback.message.delete()
         except Exception:
             pass
+          
+          # menu
+if role == "owner":
+    totals = get_totals()
+    text = f"""👑 OWNER PANEL
 
-        stats = get_stats()
+📊 Stats:
+👥 Users: {totals['total_users']}
+⚡ Scans: {totals['total_scans']}
 
-        if role == "owner":
-            text = f"""👑 OWNER PANEL
+⚙️ Controls:
+/broadcast - send message to all users
+/ban <user_id> - ban user
+/unban <user_id> - unban user
+/addpremium <user_id> - give premium
+/removepremium <user_id> - remove premium
+"""
+else:
+    text = """👤 USER PANEL
 
-📊 Users: {stats['users']}
-📊 Scans: {stats['scans']}
-📊 Live: {stats['live']}
-
-⚙️ Commands:
-• /start
-• Maintenance toggle
-• Admin control
-• Full access"""
-        elif role == "admin":
-            text = f"""🛡 ADMIN PANEL
-
-📊 Users: {stats['users']}
-
-⚙️ Commands:
-• /start
-• View stats
-• Limited control"""
-        else:
-            text = """👤 USER PANEL
-
-🚀 Features:
-• Proxy Scan
-• Live Proxies
-
-💡 Use buttons below 👇"""
+🚀 Proxy Scan
+🌍 Live Proxies
+"""
 
         msg = await callback.message.answer(text, reply_markup=cancel_kb())
         await save_message(user_id, msg)

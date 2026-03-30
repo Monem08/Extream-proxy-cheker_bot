@@ -1,53 +1,48 @@
 from aiogram import types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.loader import dp
 
-from bot.services.role_service import get_role
+from bot.services.role_service import get_role, is_owner
 from bot.services.maintenance_service import set_maintenance, is_maintenance
+from bot.services.admin_storage import (
+    get_totals,
+    ban_user,
+    unban_user,
+    add_premium,
+    remove_premium,
+    get_all_users,
+)
 
-from bot.services.rate_limiter import is_allowed
-from bot.services.anti_spam import is_spamming
-from bot.services.security_service import add_strike
-from bot.config import OWNER_ID
-
+main
 from bot.services.message_manager import save_message, delete_message
-from bot.keyboards.cancel_kb import cancel_kb
-from bot.keyboards.main_menu import main_menu
-
+from bot.
+ 
 from bot.handlers.callback_utils import safe_answer
+ 
 
 
-@dp.callback_query_handler(lambda c: c.data == "maintenance")
-async def toggle_maintenance(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    role = get_role(user_id)
+def owner_panel_kb():
+    kb = InlineKeyboardMarkup(row_width=2)
+    kb.add(
+        InlineKeyboardButton("📊 Stats", callback_data="owner_stats"),
+        InlineKeyboardButton("📢 Broadcast", callback_data="owner_broadcast"),
+    )
+    kb.add(
+        InlineKeyboardButton("🚫 Ban", callback_data="owner_ban"),
+        InlineKeyboardButton("💎 Premium", callback_data="owner_premium"),
+    )
+    kb.add(InlineKeyboardButton("⚙️ Maintenance", callback_data="maintenance"))
+    kb.add(InlineKeyboardButton("❌ Cancel", callback_data="cancel"))
+    return kb
 
-    try:
-        if role not in ["owner", "admin"]:
-            await safe_answer(callback, "❌ Not allowed", show_alert=True)
-            return
 
-        if user_id != OWNER_ID:
-            if is_spamming(user_id):
-                banned = add_strike(user_id)
-                msg = await callback.message.answer("🚫 You are banned for spam" if banned else "⚠️ Stop spamming!")
-                await save_message(user_id, msg)
-                return
+def owner_panel_text():
+    totals = get_totals()
+    return f"""👑 OWNER PANEL
 
-            if not is_allowed(user_id):
-                await safe_answer(callback, "⏳ Slow down bro...", show_alert=True)
-                return
-
-        await delete_message(user_id, callback.bot)
-
-        try:
-            await callback.message.delete()
-        except Exception:
-            pass
-
-        new_state = not is_maintenance()
-        set_maintenance(new_state)
-        status = "ON 🔒" if new_state else "OFF ✅"
-
+📊 Stats
+👥 Users: {totals['total_users']}
+⚡ Scans: {totals['t
         msg = await callback.message.answer(f"⚙️ Maintenance Mode: {status}", reply_markup=cancel_kb())
         await save_message(user_id, msg)
 
@@ -57,12 +52,28 @@ async def toggle_maintenance(callback: types.CallbackQuery):
         await safe_answer(callback)
 
 
-@dp.callback_query_handler(lambda c: c.data == "admin_panel")
-async def admin_panel(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    role = get_role(user_id)
+@dp.message_handler(commands=["broadcast"])
+async def cmd_broadcast(message: types.Message):
+    user_id = message.from_user.id
+    if not is_owner(user_id):
+        await message.answer("❌ Access Denied")
+        return
 
-    try:
+    payload = message.get_args().strip()
+    if not payload:
+        await message.answer("Usage: /broadcast <message>")
+        return
+
+    sent = 0
+    for uid in get_all_users():
+        try:
+            await message.bot.send_message(uid, payload)
+            sent += 1
+        except Exception:
+            pass
+
+    await message.answer(f"✅ Broadcast sent to {sent} users")
+
         if role not in ["owner", "admin"]:
             await safe_answer(callback, "❌ Not allowed", show_alert=True)
             return
@@ -75,15 +86,69 @@ async def admin_panel(callback: types.CallbackQuery):
             pass
 
         text = """👑 ADMIN PANEL
+ main
 
-⚙️ Controls:
-• Toggle Maintenance
-• View Stats (via Info)
-• Future: Ban / Unban
 
-🔥 Full Control Access Enabled
-"""
+@dp.message_handler(commands=["ban"])
+async def cmd_ban(message: types.Message):
+    if not is_owner(message.from_user.id):
+        await message.answer("❌ Access Denied")
+        return
 
+ codex/fix-telegram-bot-errors-and-stabilize-z3bilc
+    arg = message.get_args().strip()
+    if not arg.isdigit():
+        await message.answer("Usage: /ban <user_id>")
+        return
+
+    ban_user(int(arg))
+    await message.answer("✅ User banned")
+
+
+@dp.message_handler(commands=["unban"])
+async def cmd_unban(message: types.Message):
+    if not is_owner(message.from_user.id):
+        await message.answer("❌ Access Denied")
+        return
+
+    arg = message.get_args().strip()
+    if not arg.isdigit():
+        await message.answer("Usage: /unban <user_id>")
+        return
+
+    unban_user(int(arg))
+    await message.answer("✅ User unbanned")
+
+
+@dp.message_handler(commands=["addpremium"])
+async def cmd_add_premium(message: types.Message):
+    if not is_owner(message.from_user.id):
+        await message.answer("❌ Access Denied")
+        return
+
+    arg = message.get_args().strip()
+    if not arg.isdigit():
+        await message.answer("Usage: /addpremium <user_id>")
+        return
+
+    add_premium(int(arg))
+    await message.answer("✅ Premium added")
+
+
+@dp.message_handler(commands=["removepremium"])
+async def cmd_remove_premium(message: types.Message):
+    if not is_owner(message.from_user.id):
+        await message.answer("❌ Access Denied")
+        return
+
+    arg = message.get_args().strip()
+    if not arg.isdigit():
+        await message.answer("Usage: /removepremium <user_id>")
+        return
+
+    remove_premium(int(arg))
+    await message.answer("✅ Premium removed")
+=======
         msg = await callback.message.answer(text, reply_markup=cancel_kb())
         await save_message(user_id, msg)
 
@@ -112,4 +177,4 @@ async def cancel_admin(callback: types.CallbackQuery):
     except Exception:
         await callback.message.answer("⚠️ Failed to return to menu")
     finally:
-        await safe_answer(callback)
+   main

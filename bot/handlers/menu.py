@@ -15,6 +15,7 @@ from bot.middlewares.access_guard import is_joined
 from bot.services.message_manager import save_message, delete_message
 from bot.states.user_state import set_state, reset_state
 from bot.services.task_manager import cancel_task
+from bot.services.ban_service import is_banned
 
 from bot.handlers.callback_utils import safe_answer
 
@@ -26,8 +27,14 @@ async def handle_menu(callback: types.CallbackQuery):
 
     try:
         if is_maintenance() and role not in ["owner", "admin"]:
-            await safe_answer(callback, "🚧 Bot Under Maintenance", show_alert=True)
-            return
+        await safe_answer(callback, "🛠 Bot Under Maintenance", show_alert=True)
+        return
+
+         if is_banned(user_id):
+         msg = await callback.message.answer("🚫 You are banned")
+         await save_message(user_id, msg)
+       return
+     
 
         if user_id != OWNER_ID:
             if is_spamming(user_id):
