@@ -12,11 +12,11 @@ def main_menu(role="user"):
         InlineKeyboardButton("⚙️ Settings", callback_data="settings"),
     )
 
-    # 👑 ADMIN / OWNER ONLY
-    if role in ["admin", "owner"]:
+    # 👑 OWNER ONLY
+    if role == "owner":
         kb.add(
             InlineKeyboardButton("⚙️ Maintenance", callback_data="maintenance"),
-            InlineKeyboardButton("👑 Admin", callback_data="admin_panel"),
+            InlineKeyboardButton("👑 Owner Panel", callback_data="admin_panel"),
         )
 
     # ℹ️ INFO (ALL USERS)
