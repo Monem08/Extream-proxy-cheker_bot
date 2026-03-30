@@ -1,10 +1,14 @@
 import logging
+import threading
+import os
 
-# 🤖 aiogram
 from aiogram import executor
 from bot.loader import dp, bot as tg_bot
 
-# 🔥 IMPORT HANDLERS (IMPORTANT)
+# 🌐 web
+from bot.web import app
+
+# 🔥 handlers
 import bot.handlers.start
 import bot.handlers.menu
 import bot.handlers.scanner
@@ -14,37 +18,31 @@ import bot.handlers.upload
 import bot.handlers.info
 
 
-# 🔧 Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+# 🔧 logging
+logging.basicConfig(level=logging.INFO)
 
 
-# 🚀 STARTUP
+# 🌐 run web (IMPORTANT)
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, use_reloader=False)
+
+
+# 🚀 startup
 async def on_startup(dp):
-    print("🤖 Bot started successfully!")
+    print("🤖 Bot started")
 
     try:
-        # 💀 RESET TELEGRAM STATE (IMPORTANT)
         await tg_bot.delete_webhook(drop_pending_updates=True)
     except Exception as e:
-        print("Startup error:", e)
+        print(e)
 
 
-# 🛑 SHUTDOWN
-async def on_shutdown(dp):
-    print("🛑 Bot stopped!")
-
-
-# 🚀 MAIN RUN
+# 🚀 main
 if __name__ == "__main__":
-    try:
-        executor.start_polling(
-            dp,
-            skip_updates=True,
-            on_startup=on_startup,
-            on_shutdown=on_shutdown,
-        )
-    except Exception as e:
-        print("💀 BOT CRASH:", e)
+
+    # 🌐 web thread (MUST for Render)
+    threading.Thread(target=run_web, daemon=True).start()
+
+    # 🤖 bot
+    executor.start_polling(dp, skip_updates=True, on_startup=on_startup)
