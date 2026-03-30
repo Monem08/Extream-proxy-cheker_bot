@@ -1,14 +1,25 @@
 from flask import Flask, jsonify
-import logging
 
 app = Flask(__name__)
 
-# 💀 disable logs
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
 
+# 🏠 ROOT (CRON USE THIS)
 @app.route("/")
 def home():
     return jsonify({
-        "status": "Bot is Online!"
+        "status": "Bot is alive",
+        "service": "Proxy Checker Bot",
+        "uptime": "running"
     })
+
+
+# ❤️ HEALTH CHECK (OPTIONAL)
+@app.route("/health")
+def health():
+    return "OK", 200
+
+
+# 🔥 PING ROUTE (EXTRA SAFE)
+@app.route("/ping")
+def ping():
+    return "pong", 200
