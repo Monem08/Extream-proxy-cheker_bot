@@ -44,7 +44,7 @@ async def run_polling() -> None:
     await tg_bot.delete_webhook(drop_pending_updates=True)
 
     try:
-   await dp.start_polling()
+        await dp.start_polling()
        
     except TerminatedByOtherGetUpdates:
         logger.exception("Polling terminated because another instance called getUpdates")
