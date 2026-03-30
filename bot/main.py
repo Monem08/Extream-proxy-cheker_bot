@@ -36,21 +36,21 @@ def acquire_single_instance_lock() -> None:
         _lock_file.flush()
     except BlockingIOError:
         logger.error("Another polling instance is already running. Exiting.")
-        _lock_file.close()
-        _lock_file = None
         raise SystemExit(1)
 
 
 async def run_polling() -> None:
-    # Ensure polling mode only (remove webhook conflicts)
+    # Ensure polling mode only (remove webhook conflicts) pro monem
     await tg_bot.delete_webhook(drop_pending_updates=True)
 
     try:
         await dp.start_polling()
+
     except TerminatedByOtherGetUpdates:
-        logger.warning("Polling stopped: another instance is consuming updates.")
+        logger.exception("Polling terminated because another instance called getUpdates")
+        raise
 
-
+#new changes 
 async def main() -> None:
     acquire_single_instance_lock()
 
@@ -72,3 +72,4 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+#end

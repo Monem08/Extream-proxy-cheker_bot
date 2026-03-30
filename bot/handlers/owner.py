@@ -1,3 +1,4 @@
+# bot/handlers/owner.py
 from aiogram import types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.loader import dp
@@ -58,8 +59,7 @@ def is_elevated(user_id):
 @dp.callback_query_handler(lambda c: c.data == "admin_panel")
 async def admin_panel(callback: types.CallbackQuery):
     user_id = callback.from_user.id
-    role = get_role(user_id)
-    if role != "owner":
+    if not is_elevated(user_id):
         await safe_answer(callback, "❌ Access Denied", show_alert=True)
         return
 
