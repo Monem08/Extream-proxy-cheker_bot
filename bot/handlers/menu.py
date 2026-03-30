@@ -1,3 +1,4 @@
+# bot/handlers/menu.py
 from aiogram import types
 from bot.loader import dp
 
@@ -27,14 +28,13 @@ async def handle_menu(callback: types.CallbackQuery):
 
     try:
         if is_maintenance() and role not in ["owner", "admin"]:
-        await safe_answer(callback, "🛠 Bot Under Maintenance", show_alert=True)
-        return
+            await safe_answer(callback, "🚧 Bot Under Maintenance", show_alert=True)
+            return
 
-         if is_banned(user_id):
-         msg = await callback.message.answer("🚫 You are banned")
-         await save_message(user_id, msg)
-       return
-     
+        if is_banned(user_id):
+            msg = await callback.message.answer("🚫 You are banned")
+            await save_message(user_id, msg)
+            return
 
         if user_id != OWNER_ID:
             if is_spamming(user_id):
