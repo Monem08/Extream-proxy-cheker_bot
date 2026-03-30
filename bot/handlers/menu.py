@@ -24,9 +24,10 @@ from bot.handlers.callback_utils import safe_answer
 async def handle_menu(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     role = get_role(user_id)
+    is_elevated = role in ["owner", "admin"]
 
     try:
-        if is_maintenance() and role not in ["owner", "admin"]:
+        if is_maintenance() and not is_elevated:
             await safe_answer(callback, "🚧 Bot Under Maintenance", show_alert=True)
             return
 
@@ -35,7 +36,7 @@ async def handle_menu(callback: types.CallbackQuery):
             await save_message(user_id, msg)
             return
 
-        if user_id != OWNER_ID:
+        if user_id != int(OWNER_ID):
             if is_spamming(user_id):
                 banned = add_strike(user_id)
                 msg = await callback.message.answer("🚫 You are banned for spam" if banned else "⚠️ Stop spamming!")

@@ -36,6 +36,8 @@ def acquire_single_instance_lock() -> None:
         _lock_file.flush()
     except BlockingIOError:
         logger.error("Another polling instance is already running. Exiting.")
+        _lock_file.close()
+        _lock_file = None
         raise SystemExit(1)
 
 
@@ -46,8 +48,7 @@ async def run_polling() -> None:
     try:
         await dp.start_polling()
     except TerminatedByOtherGetUpdates:
-        logger.exception("Polling terminated because another instance called getUpdates")
-        raise
+        logger.warning("Polling stopped: another instance is consuming updates.")
 
 
 async def main() -> None:

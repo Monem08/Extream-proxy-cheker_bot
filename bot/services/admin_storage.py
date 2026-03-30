@@ -21,6 +21,8 @@ def load_data():
 
     try:
         data = json.loads(FILE.read_text())
+        if not isinstance(data, dict):
+            data = _default_data()
     except Exception:
         data = _default_data()
 
@@ -36,6 +38,7 @@ def save_data(data):
 
 
 def register_user(user_id):
+    user_id = int(user_id)
     data = load_data()
     if user_id not in data["users"]:
         data["users"].append(user_id)
@@ -57,6 +60,7 @@ def get_totals():
 
 
 def ban_user(user_id):
+    user_id = int(user_id)
     data = load_data()
     if user_id not in data["banned_users"]:
         data["banned_users"].append(user_id)
@@ -64,6 +68,7 @@ def ban_user(user_id):
 
 
 def unban_user(user_id):
+    user_id = int(user_id)
     data = load_data()
     if user_id in data["banned_users"]:
         data["banned_users"].remove(user_id)
@@ -71,10 +76,12 @@ def unban_user(user_id):
 
 
 def is_banned(user_id):
+    user_id = int(user_id)
     return user_id in load_data()["banned_users"]
 
 
 def add_premium(user_id):
+    user_id = int(user_id)
     data = load_data()
     if user_id not in data["premium_users"]:
         data["premium_users"].append(user_id)
@@ -82,6 +89,7 @@ def add_premium(user_id):
 
 
 def remove_premium(user_id):
+    user_id = int(user_id)
     data = load_data()
     if user_id in data["premium_users"]:
         data["premium_users"].remove(user_id)
@@ -89,6 +97,7 @@ def remove_premium(user_id):
 
 
 def is_premium(user_id):
+    user_id = int(user_id)
     return user_id in load_data()["premium_users"]
 
 

@@ -58,7 +58,8 @@ def is_elevated(user_id):
 @dp.callback_query_handler(lambda c: c.data == "admin_panel")
 async def admin_panel(callback: types.CallbackQuery):
     user_id = callback.from_user.id
-    if not is_elevated(user_id):
+    role = get_role(user_id)
+    if role != "owner":
         await safe_answer(callback, "❌ Access Denied", show_alert=True)
         return
 
