@@ -45,6 +45,7 @@ async def run_polling() -> None:
 
     try:
         await dp.start_polling()
+
     except TerminatedByOtherGetUpdates:
         logger.exception("Polling terminated because another instance called getUpdates")
         raise

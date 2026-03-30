@@ -13,11 +13,12 @@ from bot.services.admin_storage import (
     get_all_users,
 )
 
+main
 from bot.services.message_manager import save_message, delete_message
-from bot.keyboards.cancel_kb import cancel_kb
-from bot.keyboards.main_menu import main_menu
-
+from bot.
+ 
 from bot.handlers.callback_utils import safe_answer
+ 
 
 
 def owner_panel_kb():
@@ -41,78 +42,7 @@ def owner_panel_text():
 
 📊 Stats
 👥 Users: {totals['total_users']}
-⚡ Scans: {totals['total_scans']}
-
-⚙️ Controls:
-- /broadcast → send message to all users
-- /ban <user_id> → ban user
-- /unban <user_id> → unban user
-- /addpremium <user_id> → give premium
-- /removepremium <user_id> → remove premium"""
-
-
-@dp.callback_query_handler(lambda c: c.data == "admin_panel")
-async def admin_panel(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    if not is_owner(user_id):
-        await safe_answer(callback, "❌ Access Denied", show_alert=True)
-        return
-
-    try:
-        await delete_message(user_id, callback.bot)
-        try:
-            await callback.message.delete()
-        except Exception:
-            pass
-
-        msg = await callback.message.answer(owner_panel_text(), reply_markup=owner_panel_kb())
-        await save_message(user_id, msg)
-    finally:
-        await safe_answer(callback)
-
-
-@dp.callback_query_handler(lambda c: c.data in {"owner_stats", "owner_broadcast", "owner_ban", "owner_premium"})
-async def owner_panel_actions(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    if not is_owner(user_id):
-        await safe_answer(callback, "❌ Access Denied", show_alert=True)
-        return
-
-    action_text = {
-        "owner_stats": owner_panel_text(),
-        "owner_broadcast": "📢 Use: /broadcast <message>",
-        "owner_ban": "🚫 Use: /ban <user_id> or /unban <user_id>",
-        "owner_premium": "💎 Use: /addpremium <user_id> or /removepremium <user_id>",
-    }
-
-    try:
-        msg = await callback.message.answer(action_text[callback.data], reply_markup=owner_panel_kb())
-        await save_message(user_id, msg)
-    finally:
-        await safe_answer(callback)
-
-
-@dp.callback_query_handler(lambda c: c.data == "maintenance")
-async def toggle_maintenance(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    role = get_role(user_id)
-
-    try:
-        if role != "owner":
-            await safe_answer(callback, "❌ Access Denied", show_alert=True)
-            return
-
-        await delete_message(user_id, callback.bot)
-
-        try:
-            await callback.message.delete()
-        except Exception:
-            pass
-
-        new_state = not is_maintenance()
-        set_maintenance(new_state)
-        status = "ON 🔒" if new_state else "OFF ✅"
-
+⚡ Scans: {totals['t
         msg = await callback.message.answer(f"⚙️ Maintenance Mode: {status}", reply_markup=cancel_kb())
         await save_message(user_id, msg)
 
@@ -144,6 +74,20 @@ async def cmd_broadcast(message: types.Message):
 
     await message.answer(f"✅ Broadcast sent to {sent} users")
 
+        if role not in ["owner", "admin"]:
+            await safe_answer(callback, "❌ Not allowed", show_alert=True)
+            return
+
+        await delete_message(user_id, callback.bot)
+
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+
+        text = """👑 ADMIN PANEL
+ main
+
 
 @dp.message_handler(commands=["ban"])
 async def cmd_ban(message: types.Message):
@@ -151,6 +95,7 @@ async def cmd_ban(message: types.Message):
         await message.answer("❌ Access Denied")
         return
 
+ codex/fix-telegram-bot-errors-and-stabilize-z3bilc
     arg = message.get_args().strip()
     if not arg.isdigit():
         await message.answer("Usage: /ban <user_id>")
@@ -203,3 +148,33 @@ async def cmd_remove_premium(message: types.Message):
 
     remove_premium(int(arg))
     await message.answer("✅ Premium removed")
+=======
+        msg = await callback.message.answer(text, reply_markup=cancel_kb())
+        await save_message(user_id, msg)
+
+    except Exception:
+        await callback.message.answer("⚠️ Failed to open admin panel")
+    finally:
+        await safe_answer(callback)
+
+
+@dp.callback_query_handler(lambda c: c.data == "cancel_admin")
+async def cancel_admin(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    role = get_role(user_id)
+
+    try:
+        await delete_message(user_id, callback.bot)
+
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+
+        msg = await callback.message.answer("🔙 Back to menu", reply_markup=main_menu(role))
+        await save_message(user_id, msg)
+
+    except Exception:
+        await callback.message.answer("⚠️ Failed to return to menu")
+    finally:
+   main

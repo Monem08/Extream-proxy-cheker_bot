@@ -28,9 +28,10 @@ async def live_proxy(callback: types.CallbackQuery):
             await save_message(user_id, msg)
             return
 
-        if is_maintenance() and role != "owner":
-            await safe_answer(callback, "🚧 Bot Under Maintenance", show_alert=True)
-            return
+
+        if is_maintenance() and role not in ["owner", "admin"]:
+    await safe_answer(callback, "🛠 Bot Under Maintenance", show_alert=True)
+    return
 
         if is_spamming(user_id):
             banned = add_strike(user_id)
