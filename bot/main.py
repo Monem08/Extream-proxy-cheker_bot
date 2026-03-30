@@ -40,7 +40,7 @@ def acquire_single_instance_lock() -> None:
 
 
 async def run_polling() -> None:
-    # Ensure polling mode only (remove webhook conflicts)
+    # Ensure polling mode only (remove webhook conflicts) pro monem
     await tg_bot.delete_webhook(drop_pending_updates=True)
 
     try:
@@ -50,7 +50,7 @@ async def run_polling() -> None:
         logger.exception("Polling terminated because another instance called getUpdates")
         raise
 
-
+#new changes 
 async def main() -> None:
     acquire_single_instance_lock()
 
@@ -72,3 +72,4 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
+#end
