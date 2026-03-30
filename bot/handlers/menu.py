@@ -25,6 +25,7 @@ from bot.handlers.callback_utils import safe_answer
 async def handle_menu(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     role = get_role(user_id)
+    is_elevated = role in ["owner", "admin"]
 
     try:
         if is_maintenance() and role not in ["owner", "admin"]:
