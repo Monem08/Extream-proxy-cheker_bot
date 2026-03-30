@@ -14,6 +14,7 @@ from bot.services.maintenance_service import is_maintenance
 from bot.services.role_service import get_role
 
 from bot.keyboards.cancel_kb import cancel_kb
+from bot.services.admin_storage import increment_scans
 
 from aiogram.types import InputFile
 import tempfile
@@ -31,7 +32,7 @@ async def handle_file(message: types.Message):
 
     # 🚧 MAINTENANCE
     role = get_role(user_id)
-    if is_maintenance() and role not in ["owner", "admin"]:
+    if is_maintenance() and role != "owner":
         msg = await message.answer("🚧 Bot Under Maintenance\n⏳ Try later")
         await save_message(user_id, msg)
         return
@@ -78,6 +79,7 @@ async def handle_file(message: types.Message):
         await save_message(user_id, msg)
 
         results = await run_scan(proxies)
+        increment_scans()
 
         alive = [(p, s) for p, ok, s in results if ok and s]
         fast = [p for p, s in alive if s < 1000]
