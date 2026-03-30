@@ -1,3 +1,4 @@
+# bot/handlers/info.py
 from aiogram import types
 from bot.loader import dp
 
@@ -22,29 +23,26 @@ async def info_panel(callback: types.CallbackQuery):
             await callback.message.delete()
         except Exception:
             pass
-          
-          # menu
-if role == "owner":
-    totals = get_totals()
-    text = f"""👑 OWNER PANEL
 
-📊 Stats:
+        if role == "owner":
+            totals = get_totals()
+            text = f"""👑 OWNER PANEL
+
+📊 Stats
 👥 Users: {totals['total_users']}
 ⚡ Scans: {totals['total_scans']}
 
 ⚙️ Controls:
-/broadcast - send message to all users
-/ban <user_id> - ban user
-/unban <user_id> - unban user
-/addpremium <user_id> - give premium
-/removepremium <user_id> - remove premium
-"""
-else:
-    text = """👤 USER PANEL
+- /broadcast → send message to all users
+- /ban <user_id> → ban user
+- /unban <user_id> → unban user
+- /addpremium <user_id> → give premium
+- /removepremium <user_id> → remove premium"""
+        else:
+            text = """👤 USER PANEL
 
 🚀 Proxy Scan
-🌍 Live Proxies
-"""
+🌍 Live Proxies"""
 
         msg = await callback.message.answer(text, reply_markup=cancel_kb())
         await save_message(user_id, msg)
