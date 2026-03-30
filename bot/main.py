@@ -1,19 +1,22 @@
 import threading
 import logging
+import os
 
 # 🤖 aiogram
 from aiogram import executor
 from bot.loader import dp, bot as tg_bot
 
-# 🌐 web (cron / keep alive)
+# 🌐 web (keep alive)
 from bot.web import app
 
-# 🔥 IMPORT HANDLERS (IMPORTANT)
+# 🔥 IMPORT HANDLERS
 import bot.handlers.start
 import bot.handlers.menu
 import bot.handlers.scanner
 import bot.handlers.live
 import bot.handlers.owner
+import bot.handlers.upload
+import bot.handlers.info
 
 
 # 🔧 Logging
@@ -26,11 +29,12 @@ logging.basicConfig(
 # 🌐 RUN WEB SERVER (SAFE)
 def run_web():
     try:
+        port = int(os.environ.get("PORT", 10000))  # ✅ Render dynamic port
         app.run(
             host="0.0.0.0",
-            port=10000,
+            port=port,
             debug=False,
-            use_reloader=False  # 💀 IMPORTANT (avoid double run)
+            use_reloader=False  # 💀 VERY IMPORTANT
         )
     except Exception as e:
         print(f"🌐 Web error: {e}")
@@ -42,11 +46,14 @@ async def on_startup(dp):
     print("🌍 Web server running")
 
     try:
-        # 💀 FULL TELEGRAM RESET (IMPORTANT)
+        # 💀 RESET TELEGRAM STATE
         await tg_bot.delete_webhook(drop_pending_updates=True)
-        await tg_bot.get_updates(offset=-1)
+
+        # ❌ REMOVE THIS (CAUSE BUG)
+        # await tg_bot.get_updates(offset=-1)
+
     except Exception as e:
-        print("Webhook error:", e)
+        print("Startup error:", e)
 
 
 # 🛑 SHUTDOWN
@@ -56,11 +63,12 @@ async def on_shutdown(dp):
 
 # 🚀 MAIN RUN
 if __name__ == "__main__":
-    # 🌐 start web in background
+
+    # 🌐 start web server (thread)
     threading.Thread(target=run_web, daemon=True).start()
 
     try:
-        # 🤖 start bot polling
+        # 🤖 start polling (ONLY ONE INSTANCE)
         executor.start_polling(
             dp,
             skip_updates=True,
