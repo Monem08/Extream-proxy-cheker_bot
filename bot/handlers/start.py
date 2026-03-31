@@ -23,72 +23,65 @@ from bot.database.db import (
     set_joined,
 )
 
-from bot.services.message_manager import save_message, delete_message
-from bot.utils.response_manager import typing_delay
-
-logger = logging.getLogger(__name__)
+from bot.services.message_manager import save_message, delete_previous
 
 
 @dp.message_handler(commands=["start"], state="*")
 async def start_cmd(message: types.Message):
     user_id = message.from_user.id
 
-    try:
-        # 🧹 clean old messages first (single-message UI)
-        await delete_message(user_id, message.bot)
+    # ❌ banned check
+    if is_banned(user_id):
+        await message.answer("🚫 You are banned")
+        return
 
-        # ❌ banned check
-        if is_banned(user_id):
-            msg = await message.answer("🚫 You are banned")
-            await save_message(user_id, msg)
-            return
+    # 🧹 clean old messages
+    await delete_previous(user_id, message.bot)
 
-        await typing_delay(message.bot, message.chat.id)
+    # 🔄 cancel old tasks
+    if get_task(user_id):
+        cancel_task(user_id)
+        reset_state(user_id)
 
-        # 🔄 cancel old tasks
-        if get_task(user_id):
-            cancel_task(user_id)
-            reset_state(user_id)
+    # ✅ FIXED (no dot)
+    await ensure_user(user_id)
 
-        # ✅ FIXED (no dot)
-        await ensure_user(user_id)
+    # 🎁 referral system
+    ref_arg = (message.get_args() or "").strip()
+    if ref_arg.isdigit():
+        referrer_id = int(ref_arg)
+        if referrer_id != user_id:
+            await save_referral(user_id, referrer_id)
 
-        # 🎁 referral system
-        ref_arg = (message.get_args() or "").strip()
-        if ref_arg.isdigit():
-            referrer_id = int(ref_arg)
-            if referrer_id != user_id:
-                await save_referral(user_id, referrer_id)
+    role = get_role(user_id)
 
-        role = get_role(user_id)
+    # 🚧 maintenance check
+    if is_maintenance() and role not in ["owner", "admin"]:
+        msg = await message.answer("🚧 Bot Under Maintenance\n⏳ Try later")
+        await save_message(user_id, msg)
+        return
 
-        # 🚧 maintenance check
-        if is_maintenance() and role not in ["owner", "admin"]:
-            msg = await message.answer("🚧 Bot under maintenance\n⏳ Try again later")
-            await save_message(user_id, msg)
-            return
+    # 🔐 force join check
+    joined = await is_joined(bot, user_id)
+    if not joined:
+        msg = await message.answer(
+            "🔐 Join required to use bot",
+            reply_markup=join_keyboard(GROUP_LINK),
+        )
+        await save_message(user_id, msg)
+        return
 
-        # 🔐 force join check
-        joined = await is_joined(bot, user_id)
-        if not joined:
-            msg = await message.answer(
-                "🔐 Join required to use bot",
-                reply_markup=join_keyboard(GROUP_LINK),
-            )
-            await save_message(user_id, msg)
-            return
+    await set_joined(user_id, True)
+    await complete_referral(user_id)
 
-        await set_joined(user_id, True)
-        await complete_referral(user_id)
+    # 👤 user data
+    user = await get_user(user_id) or {"role": "user"}
+    balance = await get_balance(user_id)
 
-        # 👤 user data
-        user = await get_user(user_id) or {"role": "user"}
-        balance = await get_balance(user_id)
-
-        # 👑 OWNER PANEL
-        if role == "owner":
-            totals = get_totals()
-            text = f"""👑 OWNER PANEL
+    # 👑 OWNER PANEL
+    if role == "owner":
+        totals = get_totals()
+        text = f"""👑 OWNER PANEL
 
 📊 Stats
 👥 Users: {totals['total_users']}
