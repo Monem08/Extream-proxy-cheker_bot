@@ -8,9 +8,7 @@ logger = logging.getLogger(__name__)
 
 async def save_message(user_id, message):
     previous = user_messages.get(user_id)
-    if previous and not (
-        previous["chat_id"] == message.chat.id and previous["message_id"] == message.message_id
-    ):
+    if previous:
         try:
             await message.bot.delete_message(previous["chat_id"], previous["message_id"])
         except (MessageToDeleteNotFound, MessageCantBeDeleted, BadRequest):
