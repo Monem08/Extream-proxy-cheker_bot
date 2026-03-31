@@ -19,6 +19,8 @@ from bot.keyboards.cancel_kb import cancel_kb
 from bot.keyboards.main_menu import main_menu
 
 from bot.handlers.callback_utils import safe_answer
+from bot.services.redeem_service import redeem, create_redeem_code
+from bot.services.group_service import add_force_group, remove_force_group, get_force_groups
 
 
 def owner_panel_kb():
@@ -59,7 +61,8 @@ def is_elevated(user_id):
 @dp.callback_query_handler(lambda c: c.data == "admin_panel")
 async def admin_panel(callback: types.CallbackQuery):
     user_id = callback.from_user.id
-    if not is_elevated(user_id):
+    role = get_role(user_id)
+    if role != "owner":
         await safe_answer(callback, "❌ Access Denied", show_alert=True)
         return
 
@@ -104,7 +107,9 @@ async def owner_panel_actions(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "maintenance")
 async def toggle_maintenance(callback: types.CallbackQuery):
     user_id = callback.from_user.id
-    role = get_role(user_id)
+    if not is_elevated(user_id):
+        await safe_answer(callback, "❌ Access Denied", show_alert=True)
+        return
 
     try:
         if role not in ["owner", "admin"]:
@@ -212,3 +217,78 @@ async def cmd_remove_premium(message: types.Message):
 
     remove_premium(int(arg))
     await message.answer("✅ Premium removed")
+
+
+@dp.message_handler(commands=["redeem"])
+async def cmd_redeem(message: types.Message):
+    code = message.get_args().strip()
+    if not code:
+        await message.answer("Usage: /redeem <code>")
+        return
+
+    ok, text = await redeem(message.from_user.id, code)
+    await message.answer("✅ " + text if ok else f"❌ {text}")
+
+
+@dp.message_handler(commands=["createcode"])
+async def cmd_create_code(message: types.Message):
+    if not is_owner(message.from_user.id):
+        await message.answer("❌ Access Denied")
+        return
+
+    parts = message.get_args().split()
+    if len(parts) != 4:
+        await message.answer("Usage: /createcode <code> <points> <credits> <limit>")
+        return
+
+    code, points, credits, limit = parts
+    if not (points.lstrip("-").isdigit() and credits.lstrip("-").isdigit() and limit.isdigit()):
+        await message.answer("❌ Invalid numbers")
+        return
+
+    await create_redeem_code(code, int(points), int(credits), int(limit))
+    await message.answer("✅ Code created")
+
+
+@dp.message_handler(commands=["addgroup"])
+async def cmd_add_group(message: types.Message):
+    if not is_owner(message.from_user.id):
+        await message.answer("❌ Access Denied")
+        return
+
+    arg = message.get_args().strip()
+    if not arg.lstrip("-").isdigit():
+        await message.answer("Usage: /addgroup <group_id>")
+        return
+
+    await add_force_group(int(arg))
+    await message.answer("✅ Force group added")
+
+
+@dp.message_handler(commands=["removegroup"])
+async def cmd_remove_group(message: types.Message):
+    if not is_owner(message.from_user.id):
+        await message.answer("❌ Access Denied")
+        return
+
+    arg = message.get_args().strip()
+    if not arg.lstrip("-").isdigit():
+        await message.answer("Usage: /removegroup <group_id>")
+        return
+
+    await remove_force_group(int(arg))
+    await message.answer("✅ Force group removed")
+
+
+@dp.message_handler(commands=["groups"])
+async def cmd_groups(message: types.Message):
+    if not is_owner(message.from_user.id):
+        await message.answer("❌ Access Denied")
+        return
+
+    groups = await get_force_groups()
+    if not groups:
+        await message.answer("No force groups set.")
+        return
+
+    await message.answer("Force groups:\n" + "\n".join(str(g) for g in groups))

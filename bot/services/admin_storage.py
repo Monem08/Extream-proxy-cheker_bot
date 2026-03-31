@@ -1,96 +1,105 @@
-import json
-from pathlib import Path
+import sqlite3
 
-FILE = Path("bot/data/admin_storage.json")
-
-
-def _default_data():
-    return {
-        "users": [],
-        "banned_users": [],
-        "premium_users": [],
-        "stats": {
-            "total_scans": 0,
-        },
-    }
+from bot.database.db import DB_PATH
 
 
-def load_data():
-    if not FILE.exists():
-        return _default_data()
-
-    try:
-        data = json.loads(FILE.read_text())
-    except Exception:
-        data = _default_data()
-
-    base = _default_data()
-    base.update(data)
-    base["stats"].update(data.get("stats", {}))
-    return base
-
-
-def save_data(data):
-    FILE.parent.mkdir(parents=True, exist_ok=True)
-    FILE.write_text(json.dumps(data, indent=2))
+def _conn():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def register_user(user_id):
-    data = load_data()
-    if user_id not in data["users"]:
-        data["users"].append(user_id)
-        save_data(data)
+    try:
+        with _conn() as conn:
+            conn.execute("INSERT OR IGNORE INTO users (user_id, role) VALUES (?, 'user')", (int(user_id),))
+            conn.commit()
+    except Exception:
+        return
 
 
 def increment_scans(count=1):
-    data = load_data()
-    data["stats"]["total_scans"] = int(data["stats"].get("total_scans", 0)) + int(count)
-    save_data(data)
+    # DB-only logging counter
+    try:
+        with _conn() as conn:
+            for _ in range(int(count)):
+                conn.execute("INSERT INTO logs (user_id, action) VALUES (?, ?)", (0, "scan"))
+            conn.commit()
+    except Exception:
+        return
 
 
 def get_totals():
-    data = load_data()
-    return {
-        "total_users": len(data["users"]),
-        "total_scans": int(data["stats"].get("total_scans", 0)),
-    }
+    try:
+        with _conn() as conn:
+            users = conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()
+            scans = conn.execute("SELECT COUNT(*) AS c FROM logs WHERE action IN ('scan','scan_proxies')").fetchone()
+            return {
+                "total_users": int(users["c"]) if users else 0,
+                "total_scans": int(scans["c"]) if scans else 0,
+            }
+    except Exception:
+        return {"total_users": 0, "total_scans": 0}
 
 
 def ban_user(user_id):
-    data = load_data()
-    if user_id not in data["banned_users"]:
-        data["banned_users"].append(user_id)
-        save_data(data)
+    try:
+        with _conn() as conn:
+            conn.execute("INSERT OR IGNORE INTO banned_users (user_id) VALUES (?)", (int(user_id),))
+            conn.commit()
+    except Exception:
+        return
 
 
 def unban_user(user_id):
-    data = load_data()
-    if user_id in data["banned_users"]:
-        data["banned_users"].remove(user_id)
-        save_data(data)
+    try:
+        with _conn() as conn:
+            conn.execute("DELETE FROM banned_users WHERE user_id = ?", (int(user_id),))
+            conn.commit()
+    except Exception:
+        return
 
 
 def is_banned(user_id):
-    return user_id in load_data()["banned_users"]
+    try:
+        with _conn() as conn:
+            row = conn.execute("SELECT 1 FROM banned_users WHERE user_id = ?", (int(user_id),)).fetchone()
+            return bool(row)
+    except Exception:
+        return False
 
 
 def add_premium(user_id):
-    data = load_data()
-    if user_id not in data["premium_users"]:
-        data["premium_users"].append(user_id)
-        save_data(data)
+    try:
+        with _conn() as conn:
+            conn.execute("INSERT OR IGNORE INTO premium_users (user_id) VALUES (?)", (int(user_id),))
+            conn.commit()
+    except Exception:
+        return
 
 
 def remove_premium(user_id):
-    data = load_data()
-    if user_id in data["premium_users"]:
-        data["premium_users"].remove(user_id)
-        save_data(data)
+    try:
+        with _conn() as conn:
+            conn.execute("DELETE FROM premium_users WHERE user_id = ?", (int(user_id),))
+            conn.commit()
+    except Exception:
+        return
 
 
 def is_premium(user_id):
-    return user_id in load_data()["premium_users"]
+    try:
+        with _conn() as conn:
+            row = conn.execute("SELECT 1 FROM premium_users WHERE user_id = ?", (int(user_id),)).fetchone()
+            return bool(row)
+    except Exception:
+        return False
 
 
 def get_all_users():
-    return load_data()["users"]
+    try:
+        with _conn() as conn:
+            rows = conn.execute("SELECT user_id FROM users").fetchall()
+            return [int(r["user_id"]) for r in rows]
+    except Exception:
+        return []

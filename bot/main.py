@@ -8,6 +8,7 @@ from aiogram.utils.exceptions import TerminatedByOtherGetUpdates
 
 from bot.loader import dp, bot as tg_bot
 from bot.web import start_health_server
+from bot.database.db import init_db
 
 # Register handlers (specific first, fallback last)
 import bot.handlers.start  # noqa: F401
@@ -36,22 +37,26 @@ def acquire_single_instance_lock() -> None:
         _lock_file.flush()
     except BlockingIOError:
         logger.error("Another polling instance is already running. Exiting.")
+        _lock_file.close()
+        _lock_file = None
         raise SystemExit(1)
 
 
 async def run_polling() -> None:
-    # Ensure polling mode only (remove webhook conflicts) pro monem
+    # Ensure polling mode only (remove webhook conflicts)
     await tg_bot.delete_webhook(drop_pending_updates=True)
 
     try:
         await dp.start_polling()
+    except TerminatedByOtherGetUpdates:
+        logger.warning("Polling stopped: another instance is consuming updates.")
 
     except TerminatedByOtherGetUpdates:
         logger.exception("Polling terminated because another instance called getUpdates")
         raise
 
-#new changes 
 async def main() -> None:
+    await init_db()
     acquire_single_instance_lock()
 
     port = int(os.getenv("PORT", "10000"))
@@ -72,4 +77,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-#end

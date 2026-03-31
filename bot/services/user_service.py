@@ -1,29 +1,13 @@
-import json
-from pathlib import Path
-
-DATA_FILE = Path("bot/data/users.json")
+from bot.database.db import add_user, get_user, get_all_user_ids
 
 
-def load_users():
-    if not DATA_FILE.exists():
-        return []
-    return json.loads(DATA_FILE.read_text())
+async def ensure_user(user_id):
+    await add_user(int(user_id))
 
 
-def save_users(users):
-    DATA_FILE.write_text(json.dumps(users, indent=2))
+async def get_user_data(user_id):
+    return await get_user(int(user_id))
 
 
-def add_user(user_id, name):
-    users = load_users()
-
-    if user_id not in [u["id"] for u in users]:
-        users.append({
-            "id": user_id,
-            "name": name
-        })
-        save_users(users)
-
-
-def get_all_users():
-    return load_users()
+async def get_all_users():
+    return await get_all_user_ids()

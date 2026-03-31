@@ -12,7 +12,15 @@ from bot.states.user_state import reset_state
 from bot.services.role_service import get_role
 from bot.services.ban_service import is_banned
 from bot.services.maintenance_service import is_maintenance
-from bot.services.admin_storage import register_user, get_totals
+from bot.services.admin_storage import get_totals
+from bot.database.db import (
+    ensure_user,
+    get_user,
+    get_balance,
+    save_referral,
+    complete_referral,
+    set_joined,
+)
 
 from bot.services.message_manager import save_message, delete_message
 
@@ -31,9 +39,17 @@ async def start_cmd(message: types.Message):
         cancel_task(user_id)
         reset_state(user_id)
 
+.    await ensure_user(user_id)
+
+    ref_arg = (message.get_args() or "").strip()
+    if ref_arg.isdigit():
+        referrer_id = int(ref_arg)
+        if referrer_id != user_id:
+            await save_referral(user_id, referrer_id)
+
     role = get_role(user_id)
 
-    if is_maintenance() and role != "owner":
+    if is_maintenance() and role not in ["owner", "admin"]:
         msg = await message.answer("🚧 Bot Under Maintenance\n⏳ Try later")
         await save_message(user_id, msg)
         return
@@ -41,13 +57,17 @@ async def start_cmd(message: types.Message):
     joined = await is_joined(bot, user_id)
     if not joined:
         msg = await message.answer(
-            "🔐 Join group to use bot",
+            "🔐 Join required to use bot",
             reply_markup=join_keyboard(GROUP_LINK),
         )
         await save_message(user_id, msg)
         return
 
-    register_user(user_id)
+    await set_joined(user_id, True)
+    await complete_referral(user_id)
+
+    user = await get_user(user_id) or {"role": "user"}
+    balance = await get_balance(user_id)
 
     if role == "owner":
         totals = get_totals()
@@ -57,6 +77,10 @@ async def start_cmd(message: types.Message):
 👥 Users: {totals['total_users']}
 ⚡ Scans: {totals['total_scans']}
 
+💰 Balance
+⭐ Points: {balance['points']}
+💳 Credits: {balance['credits']}
+
 ⚙️ Controls:
 - /broadcast → send message to all users
 - /ban <user_id> → ban user
@@ -64,10 +88,16 @@ async def start_cmd(message: types.Message):
 - /addpremium <user_id> → give premium
 - /removepremium <user_id> → remove premium"""
     else:
-        text = """👤 USER PANEL
+        text = f"""👤 USER PANEL
 
 🚀 Proxy Scan
-🌍 Live Proxies"""
+🌍 Live Proxies
+
+💰 Balance
+⭐ Points: {balance['points']}
+💳 Credits: {balance['credits']}
+
+🎭 Role: {user.get('role', 'user')}"""
 
     msg = await message.answer(text, reply_markup=main_menu(role))
     await save_message(user_id, msg)

@@ -19,6 +19,7 @@ from bot.services.task_manager import cancel_task
 from bot.services.ban_service import is_banned
 
 from bot.handlers.callback_utils import safe_answer
+from bot.database.db import ensure_user, get_balance
 
 
 @dp.callback_query_handler(lambda c: c.data in {"menu", "start_scan", "upload", "settings", "cancel", "verify_join"})
@@ -28,7 +29,7 @@ async def handle_menu(callback: types.CallbackQuery):
     is_elevated = role in ["owner", "admin"]
 
     try:
-        if is_maintenance() and role not in ["owner", "admin"]:
+        if is_maintenance() and not is_elevated:
             await safe_answer(callback, "🚧 Bot Under Maintenance", show_alert=True)
             return
 
@@ -37,7 +38,7 @@ async def handle_menu(callback: types.CallbackQuery):
             await save_message(user_id, msg)
             return
 
-        if user_id != OWNER_ID:
+        if user_id != int(OWNER_ID):
             if is_spamming(user_id):
                 banned = add_strike(user_id)
                 msg = await callback.message.answer("🚫 You are banned for spam" if banned else "⚠️ Stop spamming!")
@@ -49,6 +50,8 @@ async def handle_menu(callback: types.CallbackQuery):
                 return
 
         data = callback.data
+        await ensure_user(user_id)
+        balance = await get_balance(user_id)
 
         await delete_message(user_id, callback.bot)
 
@@ -72,7 +75,10 @@ async def handle_menu(callback: types.CallbackQuery):
             await save_message(user_id, msg)
 
         elif data == "settings":
-            msg = await callback.message.answer("⚙️ Settings coming soon...", reply_markup=cancel_kb())
+            msg = await callback.message.answer(
+                f"⚙️ Settings\n\n⭐ Points: {balance['points']}\n💳 Credits: {balance['credits']}",
+                reply_markup=cancel_kb(),
+            )
             await save_message(user_id, msg)
 
         elif data == "verify_join":
