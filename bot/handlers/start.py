@@ -29,18 +29,23 @@ from bot.services.message_manager import save_message, delete_message
 async def start_cmd(message: types.Message):
     user_id = message.from_user.id
 
+    # ❌ banned check
     if is_banned(user_id):
         await message.answer("🚫 You are banned")
         return
 
+    # 🧹 clean old messages
     await delete_message(user_id, message.bot)
 
+    # 🔄 cancel old tasks
     if get_task(user_id):
         cancel_task(user_id)
         reset_state(user_id)
 
-.    await ensure_user(user_id)
+    # ✅ FIXED (no dot)
+    await ensure_user(user_id)
 
+    # 🎁 referral system
     ref_arg = (message.get_args() or "").strip()
     if ref_arg.isdigit():
         referrer_id = int(ref_arg)
@@ -49,11 +54,13 @@ async def start_cmd(message: types.Message):
 
     role = get_role(user_id)
 
+    # 🚧 maintenance check
     if is_maintenance() and role not in ["owner", "admin"]:
         msg = await message.answer("🚧 Bot Under Maintenance\n⏳ Try later")
         await save_message(user_id, msg)
         return
 
+    # 🔐 force join check
     joined = await is_joined(bot, user_id)
     if not joined:
         msg = await message.answer(
@@ -66,9 +73,11 @@ async def start_cmd(message: types.Message):
     await set_joined(user_id, True)
     await complete_referral(user_id)
 
+    # 👤 user data
     user = await get_user(user_id) or {"role": "user"}
     balance = await get_balance(user_id)
 
+    # 👑 OWNER PANEL
     if role == "owner":
         totals = get_totals()
         text = f"""👑 OWNER PANEL
@@ -87,6 +96,8 @@ async def start_cmd(message: types.Message):
 - /unban <user_id> → unban user
 - /addpremium <user_id> → give premium
 - /removepremium <user_id> → remove premium"""
+    
+    # 👤 USER PANEL
     else:
         text = f"""👤 USER PANEL
 
@@ -99,5 +110,6 @@ async def start_cmd(message: types.Message):
 
 🎭 Role: {user.get('role', 'user')}"""
 
+    # 📩 send message
     msg = await message.answer(text, reply_markup=main_menu(role))
     await save_message(user_id, msg)
