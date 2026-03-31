@@ -1,6 +1,4 @@
-# bot/handlers/live.py
 from aiogram import types
-from bot.loader import dp
 
 from bot.services.live_proxy_service import fetch_proxies
 from bot.services.scanner_service import run_scan
@@ -9,69 +7,43 @@ from bot.keyboards.cancel_kb import cancel_kb
 from bot.services.maintenance_service import is_maintenance
 from bot.services.role_service import get_role
 
-from bot.services.message_manager import delete_message, save_message
+from bot.services.message_manager import edit_or_send
 from bot.services.ban_service import is_banned
 from bot.services.rate_limiter import is_allowed
 from bot.services.anti_spam import is_spamming
 from bot.services.security_service import add_strike
 
-from bot.handlers.callback_utils import safe_answer
 
-
-@dp.callback_query_handler(lambda c: c.data == "live")
-async def live_proxy(callback: types.CallbackQuery):
+async def handle_live_action(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     role = get_role(user_id)
 
-    try:
-        if is_banned(user_id):
-            msg = await callback.message.answer("🚫 You are banned")
-            await save_message(user_id, msg)
-            return
+    if is_banned(user_id):
+        await edit_or_send(user_id, callback.message, "🚫 Access blocked.")
+        return
 
-        if is_maintenance() and role not in ["owner", "admin"]:
-            await safe_answer(callback, "🚧 Bot Under Maintenance", show_alert=True)
-            return
+    if is_maintenance() and role not in ["owner", "admin"]:
+        await callback.answer("🚧 Maintenance", show_alert=True)
+        return
 
-        if is_spamming(user_id):
-            banned = add_strike(user_id)
-            msg = await callback.message.answer("🚫 You are banned" if banned else "⚠️ Stop spamming!")
-            await save_message(user_id, msg)
-            return
+    if is_spamming(user_id):
+        banned = add_strike(user_id)
+        await edit_or_send(user_id, callback.message, "🚫 Banned for spam." if banned else "⚠️ Slow down.")
+        return
 
-        if not is_allowed(user_id):
-            await safe_answer(callback, "⏳ Slow down bro...", show_alert=True)
-            return
+    if not is_allowed(user_id):
+        await callback.answer("⏳ Try again in a moment.", show_alert=True)
+        return
 
-        await delete_message(user_id, callback.bot)
+    await edit_or_send(user_id, callback.message, "🌐 Fetching live proxies...\n⏳ Processing...", cancel_kb())
 
-        try:
-            await callback.message.delete()
-        except Exception:
-            pass
+    proxies = await fetch_proxies()
+    if not proxies:
+        await edit_or_send(user_id, callback.message, "❌ No live proxies found.", cancel_kb())
+        return
 
-        msg = await callback.message.answer("🌍 Fetching proxies...", reply_markup=cancel_kb())
-        await save_message(user_id, msg)
+    results = await run_scan(proxies[:50])
+    alive = [p for p, ok, _ in results if ok]
 
-        proxies = await fetch_proxies()
-        if not proxies:
-            fail_msg = await msg.edit_text("❌ Failed to fetch proxies", reply_markup=cancel_kb())
-            await save_message(user_id, fail_msg)
-            return
-
-        results = await run_scan(proxies[:50])
-        alive = [p for p, ok, _ in results if ok]
-
-        if not alive:
-            text = "❌ No alive proxies"
-        else:
-            text = f"🌍 Live Proxies\n\n🟢 Alive: {len(alive)}\n\n" + "\n".join(alive[:10])
-
-        result_msg = await msg.edit_text(text, reply_markup=cancel_kb())
-        await save_message(user_id, result_msg)
-
-    except Exception:
-        err = await callback.message.answer("⚠️ Live proxy fetch failed", reply_markup=cancel_kb())
-        await save_message(user_id, err)
-    finally:
-        await safe_answer(callback)
+    text = "❌ No alive proxies." if not alive else f"✅ Live ready\n🟢 Alive: {len(alive)}\n\n" + "\n".join(alive[:10])
+    await edit_or_send(user_id, callback.message, text, cancel_kb())

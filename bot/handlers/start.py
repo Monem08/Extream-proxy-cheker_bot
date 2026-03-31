@@ -22,7 +22,7 @@ from bot.database.db import (
     set_joined,
 )
 
-from bot.services.message_manager import save_message, delete_message
+from bot.services.message_manager import save_message, delete_previous
 
 
 @dp.message_handler(commands=["start"], state="*")
@@ -35,7 +35,7 @@ async def start_cmd(message: types.Message):
         return
 
     # 🧹 clean old messages
-    await delete_message(user_id, message.bot)
+    await delete_previous(user_id, message.bot)
 
     # 🔄 cancel old tasks
     if get_task(user_id):
