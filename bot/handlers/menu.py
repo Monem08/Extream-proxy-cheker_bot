@@ -1,4 +1,5 @@
 # bot/handlers/menu.py
+import logging
 from aiogram import types
 from bot.loader import dp
 
@@ -21,6 +22,8 @@ from bot.services.ban_service import is_banned
 from bot.handlers.callback_utils import safe_answer
 from bot.database.db import ensure_user, get_balance
 from bot.utils.response_manager import typing_delay, edit_or_send
+
+logger = logging.getLogger(__name__)
 
 
 @dp.callback_query_handler(lambda c: c.data in {"menu", "start_scan", "upload", "settings", "cancel", "verify_join"})
@@ -97,6 +100,7 @@ async def handle_menu(callback: types.CallbackQuery):
             await edit_or_send(user_id, callback.message, "🔙 Back to menu", reply_markup=main_menu(role))
 
     except Exception:
+        logger.exception("Menu callback failed for user %s with data %s", user_id, callback.data)
         await edit_or_send(user_id, callback.message, "❌ Failed\nPlease try again.")
     finally:
         await safe_answer(callback)

@@ -1,3 +1,4 @@
+import logging
 from aiogram import types
 from bot.loader import dp, bot
 
@@ -25,6 +26,8 @@ from bot.database.db import (
 from bot.services.message_manager import save_message, delete_message
 from bot.utils.response_manager import typing_delay
 
+logger = logging.getLogger(__name__)
+
 
 @dp.message_handler(commands=["start"], state="*")
 async def start_cmd(message: types.Message):
@@ -33,7 +36,8 @@ async def start_cmd(message: types.Message):
     try:
         # ❌ banned check
         if is_banned(user_id):
-            await message.answer("🚫 You are banned")
+            msg = await message.answer("🚫 You are banned")
+            await save_message(user_id, msg)
             return
 
         # 🧹 clean old messages
@@ -117,5 +121,6 @@ async def start_cmd(message: types.Message):
         msg = await message.answer(text, reply_markup=main_menu(role))
         await save_message(user_id, msg)
     except Exception:
+        logger.exception("Failed to process /start for user %s", user_id)
         msg = await message.answer("❌ Failed to open menu. Please try again.")
         await save_message(user_id, msg)
