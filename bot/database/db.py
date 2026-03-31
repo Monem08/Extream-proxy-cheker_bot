@@ -19,6 +19,8 @@ async def init_db():
     try:
         conn = await _connect()
         async with conn:
+            await conn.execute("PRAGMA journal_mode=WAL")
+            await conn.execute("PRAGMA foreign_keys=ON")
             await conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS users (
@@ -73,8 +75,10 @@ async def init_db():
             await conn.execute("CREATE TABLE IF NOT EXISTS banned_users (user_id INTEGER PRIMARY KEY)")
             await conn.execute("CREATE TABLE IF NOT EXISTS premium_users (user_id INTEGER PRIMARY KEY)")
             await conn.commit()
+            return True
     except Exception as e:
         print("DB init error:", e)
+        return False
 
 
 async def ensure_user(user_id: int):

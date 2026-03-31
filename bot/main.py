@@ -53,7 +53,10 @@ async def run_polling() -> None:
 
 
 async def main() -> None:
-    await init_db()
+    ok = await init_db()
+    if not ok:
+        logger.error("Database initialization failed. Exiting.")
+        raise SystemExit(1)
     acquire_single_instance_lock()
 
     port = int(os.getenv("PORT", "10000"))
