@@ -75,7 +75,7 @@ async def scan_proxies(message: types.Message):
     try:
         results = await run_scan(proxies)
         increment_scans()
-        log_action(user_id, "scan_proxies")
+        await log_action(user_id, "scan_proxies")
 
         alive = [(p, s) for p, ok, s in results if ok and s]
         fast = [p for p, s in alive if s < 1000]

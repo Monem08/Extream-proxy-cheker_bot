@@ -53,7 +53,7 @@ async def run_polling() -> None:
 
 
 async def main() -> None:
-    init_db()
+    await init_db()
     acquire_single_instance_lock()
 
     port = int(os.getenv("PORT", "10000"))

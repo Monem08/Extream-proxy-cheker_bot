@@ -14,12 +14,11 @@ from bot.services.ban_service import is_banned
 from bot.services.maintenance_service import is_maintenance
 from bot.services.admin_storage import get_totals
 from bot.database.db import (
-    add_user,
+    ensure_user,
     get_user,
     get_balance,
     save_referral,
     complete_referral,
-    add_points,
     set_joined,
 )
 
@@ -40,13 +39,13 @@ async def start_cmd(message: types.Message):
         cancel_task(user_id)
         reset_state(user_id)
 
-    add_user(user_id)
+    await ensure_user(user_id)
 
     ref_arg = (message.get_args() or "").strip()
     if ref_arg.isdigit():
         referrer_id = int(ref_arg)
         if referrer_id != user_id:
-            save_referral(user_id, referrer_id)
+            await save_referral(user_id, referrer_id)
 
     role = get_role(user_id)
 
@@ -58,20 +57,17 @@ async def start_cmd(message: types.Message):
     joined = await is_joined(bot, user_id)
     if not joined:
         msg = await message.answer(
-            "🔐 Join group to use bot",
+            "🔐 Join required to use bot",
             reply_markup=join_keyboard(GROUP_LINK),
         )
         await save_message(user_id, msg)
         return
 
-    set_joined(user_id, True)
+    await set_joined(user_id, True)
+    await complete_referral(user_id)
 
-    referrer = complete_referral(user_id)
-    if referrer:
-        add_points(referrer, 10)
-
-    user = get_user(user_id) or {"role": "user"}
-    balance = get_balance(user_id)
+    user = await get_user(user_id) or {"role": "user"}
+    balance = await get_balance(user_id)
 
     if role == "owner":
         totals = get_totals()

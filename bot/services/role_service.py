@@ -1,5 +1,13 @@
+import sqlite3
+
 from bot.config import OWNER_ID
-from bot.database.db import add_user, get_user
+from bot.database.db import DB_PATH
+
+
+def _conn():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def get_role(user_id):
@@ -11,15 +19,21 @@ def get_role(user_id):
     if uid == int(OWNER_ID):
         return "owner"
 
-    add_user(uid)
-    user = get_user(uid)
-    if not user:
-        return "user"
+    try:
+        with _conn() as conn:
+            row = conn.execute("SELECT role FROM users WHERE user_id = ?", (uid,)).fetchone()
+            if not row:
+                conn.execute("INSERT OR IGNORE INTO users (user_id, role) VALUES (?, 'user')", (uid,))
+                conn.commit()
+                return "user"
 
-    role = (user.get("role") or "user").lower()
-    if role not in ["owner", "admin", "user"]:
-        return "user"
-    return role
+            role = (row["role"] or "user").lower()
+            if role in ["owner", "admin", "user"]:
+                return role
+    except Exception:
+        pass
+
+    return "user"
 
 
 def is_owner(user_id):
