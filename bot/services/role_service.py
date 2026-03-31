@@ -1,42 +1,40 @@
-import json
-from pathlib import Path
+import sqlite3
+
 from bot.config import OWNER_ID
-
-ADMIN_FILE = Path("bot/data/admins.json")
-
-
-def load_admins():
-    if not ADMIN_FILE.exists():
-        return []
-    return json.loads(ADMIN_FILE.read_text())
+from bot.database.db import DB_PATH
 
 
-def save_admins(admins):
-    ADMIN_FILE.write_text(json.dumps(admins, indent=2))
+def _conn():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def get_role(user_id):
-    if user_id == OWNER_ID:
-        return "Owner 👑"
-    elif user_id in load_admins():
-        return "Admin ⚡"
-    else:
-        return "User 👤"
+    try:
+        uid = int(user_id)
+    except (TypeError, ValueError):
+        return "user"
+
+    if uid == int(OWNER_ID):
+        return "owner"
+
+    try:
+        with _conn() as conn:
+            row = conn.execute("SELECT role FROM users WHERE user_id = ?", (uid,)).fetchone()
+            if not row:
+                conn.execute("INSERT OR IGNORE INTO users (user_id, role) VALUES (?, 'user')", (uid,))
+                conn.commit()
+                return "user"
+
+            role = (row["role"] or "user").lower()
+            if role in ["owner", "admin", "user"]:
+                return role
+    except Exception:
+        pass
+
+    return "user"
 
 
-def is_admin(user_id):
-    return user_id in load_admins() or user_id == OWNER_ID
-
-
-def add_admin(user_id):
-    admins = load_admins()
-    if user_id not in admins:
-        admins.append(user_id)
-        save_admins(admins)
-
-
-def remove_admin(user_id):
-    admins = load_admins()
-    if user_id in admins:
-        admins.remove(user_id)
-        save_admins(admins)
+def is_owner(user_id):
+    return get_role(user_id) == "owner"

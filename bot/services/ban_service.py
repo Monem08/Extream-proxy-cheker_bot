@@ -1,32 +1,35 @@
-import json
-from pathlib import Path
-
-FILE = Path("bot/data/bans.json")
+import sqlite3
+from bot.database.db import DB_PATH
 
 
-def load_bans():
-    if not FILE.exists():
-        return []
-    return json.loads(FILE.read_text())
-
-
-def save_bans(data):
-    FILE.write_text(json.dumps(data, indent=2))
+def _conn():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def ban_user(user_id):
-    bans = load_bans()
-    if user_id not in bans:
-        bans.append(user_id)
-        save_bans(bans)
+    try:
+        with _conn() as conn:
+            conn.execute("INSERT OR IGNORE INTO banned_users (user_id) VALUES (?)", (int(user_id),))
+            conn.commit()
+    except Exception:
+        return
 
 
 def unban_user(user_id):
-    bans = load_bans()
-    if user_id in bans:
-        bans.remove(user_id)
-        save_bans(bans)
+    try:
+        with _conn() as conn:
+            conn.execute("DELETE FROM banned_users WHERE user_id = ?", (int(user_id),))
+            conn.commit()
+    except Exception:
+        return
 
 
 def is_banned(user_id):
-    return user_id in load_bans()
+    try:
+        with _conn() as conn:
+            row = conn.execute("SELECT 1 FROM banned_users WHERE user_id = ?", (int(user_id),)).fetchone()
+            return bool(row)
+    except Exception:
+        return False

@@ -1,8 +1,17 @@
-from bot.config import GROUP_ID
+from bot.services.group_service import get_force_groups
+
 
 async def is_joined(bot, user_id):
     try:
-        member = await bot.get_chat_member(GROUP_ID, user_id)
-        return member.status in ["member", "administrator", "creator"]
-    except:
+        groups = await get_force_groups()
+        if not groups:
+            return True
+
+        for group_id in groups:
+            member = await bot.get_chat_member(group_id, user_id)
+            if member.status in ["member", "administrator", "creator"]:
+                return True
+
+        return False
+    except Exception:
         return False
