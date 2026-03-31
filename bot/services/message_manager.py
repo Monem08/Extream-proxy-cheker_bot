@@ -10,6 +10,7 @@ from aiogram.utils.exceptions import (
 )
 
 user_messages = {}
+logger = logging.getLogger(__name__)
 
 
 async def save_message(user_id: int, message: Message):
@@ -27,7 +28,7 @@ async def delete_previous(user_id: int, bot=None):
 
     try:
         await bot.delete_message(data["chat_id"], data["message_id"])
-    except MessageToDeleteNotFound:
+    except (MessageToDeleteNotFound, MessageCantBeDeleted, BadRequest):
         pass
     except Exception:
         pass

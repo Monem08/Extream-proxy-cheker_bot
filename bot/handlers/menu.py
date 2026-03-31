@@ -17,12 +17,18 @@ from bot.services.task_manager import cancel_task
 from bot.services.ban_service import is_banned
 
 from bot.database.db import ensure_user, get_balance
+from bot.utils.response_manager import typing_delay, edit_or_send
+
+logger = logging.getLogger(__name__)
 
 
 async def handle_menu_action(callback: types.CallbackQuery, action: str, data: str | None = None):
     user_id = callback.from_user.id
     role = get_role(user_id)
     is_elevated = role in ["owner", "admin"]
+    if not callback.message:
+        await safe_answer(callback, "⚠️ Message is unavailable.", show_alert=True)
+        return
 
     if is_maintenance() and not is_elevated:
         await callback.answer("🚧 Maintenance", show_alert=True)
