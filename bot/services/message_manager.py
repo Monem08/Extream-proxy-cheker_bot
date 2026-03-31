@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from random import uniform
 
 from aiogram.types import InlineKeyboardMarkup, Message
@@ -7,6 +8,8 @@ from aiogram.utils.exceptions import (
     MessageNotModified,
     MessageToDeleteNotFound,
     MessageToEditNotFound,
+    MessageCantBeDeleted,
+    BadRequest,
 )
 
 user_messages = {}
@@ -14,7 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 async def save_message(user_id: int, message: Message):
-    user_messages[user_id] = {"chat_id": message.chat.id, "message_id": message.message_id}
+    user_messages[user_id] = {
+        "chat_id": message.chat.id,
+        "message_id": message.message_id,
+    }
 
 
 def get_message(user_id: int):
@@ -31,14 +37,19 @@ async def delete_previous(user_id: int, bot=None):
     except (MessageToDeleteNotFound, MessageCantBeDeleted, BadRequest):
         pass
     except Exception:
-        pass
+        logger.exception("Failed deleting message for user %s", user_id)
 
 
 async def _human_delay(min_delay: float = 0.4, max_delay: float = 0.9):
     await asyncio.sleep(uniform(min_delay, max_delay))
 
 
-async def edit_or_send(user_id: int, source_message: Message, text: str, keyboard: InlineKeyboardMarkup = None):
+async def edit_or_send(
+    user_id: int,
+    source_message: Message,
+    text: str,
+    keyboard: InlineKeyboardMarkup = None,
+):
     bot = source_message.bot
     chat_id = source_message.chat.id
 
@@ -46,6 +57,7 @@ async def edit_or_send(user_id: int, source_message: Message, text: str, keyboar
     await _human_delay()
 
     tracked = get_message(user_id)
+
     if tracked:
         try:
             edited = await bot.edit_message_text(
@@ -56,10 +68,11 @@ async def edit_or_send(user_id: int, source_message: Message, text: str, keyboar
             )
             await save_message(user_id, edited)
             return edited
+
         except (MessageNotModified, MessageToEditNotFound, MessageCantBeEdited):
             pass
         except Exception:
-            pass
+            logger.exception("Edit failed for user %s", user_id)
 
     fresh = await source_message.answer(text, reply_markup=keyboard)
     await save_message(user_id, fresh)
