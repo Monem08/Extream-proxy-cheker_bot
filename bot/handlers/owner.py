@@ -1,4 +1,3 @@
-# bot/handlers/owner.py
 from aiogram import types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.loader import dp
@@ -14,11 +13,9 @@ from bot.services.admin_storage import (
     get_all_users,
 )
 
-from bot.services.message_manager import save_message, delete_message
-from bot.keyboards.cancel_kb import cancel_kb
+from bot.services.message_manager import edit_or_send
 from bot.keyboards.main_menu import main_menu
 
-from bot.handlers.callback_utils import safe_answer
 from bot.services.redeem_service import redeem, create_redeem_code
 from bot.services.group_service import add_force_group, remove_force_group, get_force_groups
 
@@ -26,114 +23,59 @@ from bot.services.group_service import add_force_group, remove_force_group, get_
 def owner_panel_kb():
     kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
-        InlineKeyboardButton("📊 Stats", callback_data="owner_stats"),
-        InlineKeyboardButton("📢 Broadcast", callback_data="owner_broadcast"),
+        InlineKeyboardButton("📊 Stats", callback_data="owner:stats"),
+        InlineKeyboardButton("📢 Broadcast", callback_data="owner:broadcast"),
     )
     kb.add(
-        InlineKeyboardButton("🚫 Ban", callback_data="owner_ban"),
-        InlineKeyboardButton("💎 Premium", callback_data="owner_premium"),
+        InlineKeyboardButton("🚫 Ban", callback_data="owner:ban"),
+        InlineKeyboardButton("💎 Premium", callback_data="owner:premium"),
     )
-    kb.add(InlineKeyboardButton("⚙️ Maintenance", callback_data="maintenance"))
-    kb.add(InlineKeyboardButton("❌ Cancel", callback_data="cancel"))
+    kb.add(InlineKeyboardButton("⚙️ Maintenance", callback_data="owner:maintenance"))
+    kb.add(InlineKeyboardButton("❌ Cancel", callback_data="menu:cancel"))
     return kb
 
 
 def owner_panel_text():
     totals = get_totals()
-    return f"""👑 OWNER PANEL
-
-📊 Stats
-👥 Users: {totals['total_users']}
-⚡ Scans: {totals['total_scans']}
-
-⚙️ Controls:
-- /broadcast → send message to all users
-- /ban <user_id> → ban user
-- /unban <user_id> → unban user
-- /addpremium <user_id> → give premium
-- /removepremium <user_id> → remove premium"""
+    return (
+        "👑 Owner Panel\n\n"
+        f"👥 Users: {totals['total_users']}\n"
+        f"⚡ Scans: {totals['total_scans']}\n\n"
+        "🛠 Commands\n"
+        "/broadcast, /ban, /unban\n"
+        "/addpremium, /removepremium"
+    )
 
 
-def is_elevated(user_id):
-    return get_role(user_id) in ["owner", "admin"]
-
-
-@dp.callback_query_handler(lambda c: c.data == "admin_panel")
-async def admin_panel(callback: types.CallbackQuery):
+async def handle_owner_action(callback: types.CallbackQuery, action: str):
     user_id = callback.from_user.id
     role = get_role(user_id)
     if role != "owner":
-        await safe_answer(callback, "❌ Access Denied", show_alert=True)
+        await callback.answer("❌ Access denied", show_alert=True)
         return
 
-    try:
-        await delete_message(user_id, callback.bot)
-        try:
-            await callback.message.delete()
-        except Exception:
-            pass
-
-        msg = await callback.message.answer(owner_panel_text(), reply_markup=owner_panel_kb())
-        await save_message(user_id, msg)
-    except Exception:
-        await callback.message.answer("⚠️ Failed to open panel")
-    finally:
-        await safe_answer(callback)
-
-
-@dp.callback_query_handler(lambda c: c.data in {"owner_stats", "owner_broadcast", "owner_ban", "owner_premium"})
-async def owner_panel_actions(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    if not is_elevated(user_id):
-        await safe_answer(callback, "❌ Access Denied", show_alert=True)
+    if action == "panel":
+        await edit_or_send(user_id, callback.message, owner_panel_text(), owner_panel_kb())
         return
 
-    action_text = {
-        "owner_stats": owner_panel_text(),
-        "owner_broadcast": "📢 Use: /broadcast <message>",
-        "owner_ban": "🚫 Use: /ban <user_id> or /unban <user_id>",
-        "owner_premium": "💎 Use: /addpremium <user_id> or /removepremium <user_id>",
-    }
-
-    try:
-        msg = await callback.message.answer(action_text[callback.data], reply_markup=owner_panel_kb())
-        await save_message(user_id, msg)
-    except Exception:
-        await callback.message.answer("⚠️ Failed to load action")
-    finally:
-        await safe_answer(callback)
-
-
-@dp.callback_query_handler(lambda c: c.data == "maintenance")
-async def toggle_maintenance(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    if not is_elevated(user_id):
-        await safe_answer(callback, "❌ Access Denied", show_alert=True)
+    if action in {"stats", "broadcast", "ban", "premium"}:
+        action_text = {
+            "stats": owner_panel_text(),
+            "broadcast": "📢 Use: /broadcast <message>",
+            "ban": "🚫 Use: /ban <id> or /unban <id>",
+            "premium": "💎 Use: /addpremium <id> or /removepremium <id>",
+        }
+        await edit_or_send(user_id, callback.message, action_text[action], owner_panel_kb())
         return
 
-    try:
-        if role not in ["owner", "admin"]:
-            await safe_answer(callback, "❌ Access Denied", show_alert=True)
-            return
-
-        await delete_message(user_id, callback.bot)
-
-        try:
-            await callback.message.delete()
-        except Exception:
-            pass
-
+    if action == "maintenance":
         new_state = not is_maintenance()
         set_maintenance(new_state)
         status = "ON 🔒" if new_state else "OFF ✅"
+        await edit_or_send(user_id, callback.message, f"⚙️ Maintenance: {status}", main_menu(role))
+        return
 
-        msg = await callback.message.answer(f"⚙️ Maintenance Mode: {status}", reply_markup=cancel_kb())
-        await save_message(user_id, msg)
-
-    except Exception:
-        await callback.message.answer("⚠️ Failed to update maintenance mode")
-    finally:
-        await safe_answer(callback)
+    await callback.answer("⚠️ Invalid action", show_alert=True)
 
 
 @dp.message_handler(commands=["broadcast"])

@@ -1,36 +1,45 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 
 
-def main_menu(role="user"):
+def main_menu(role="user", state="idle"):
     kb = InlineKeyboardMarkup(row_width=2)
+    scan_label = "🛑 Stop Scan" if state == "scanning" else "🚀 Start Scan"
+    scan_action = "scan:stop" if state == "scanning" else "scan:start"
 
-    # 🔥 USER BUTTONS
     kb.add(
-        InlineKeyboardButton("🚀 Start Scan", callback_data="start_scan"),
-        InlineKeyboardButton("📂 Upload Proxy", callback_data="upload"),
-        InlineKeyboardButton("🌍 Live Proxies", callback_data="live"),
-        InlineKeyboardButton("⚙️ Settings", callback_data="settings"),
+        InlineKeyboardButton(scan_label, callback_data=scan_action),
+        InlineKeyboardButton("📂 Upload", callback_data="proxy:upload"),
+    )
+    kb.add(
+        InlineKeyboardButton("🌐 Live", callback_data="proxy:live"),
+        InlineKeyboardButton("⚙️ Settings", callback_data="menu:settings"),
     )
 
-    # 👑 OWNER ONLY
     if role == "owner":
         kb.add(
-            InlineKeyboardButton("⚙️ Maintenance", callback_data="maintenance"),
-            InlineKeyboardButton("👑 Owner Panel", callback_data="admin_panel"),
+            InlineKeyboardButton("🛠 Maintenance", callback_data="owner:maintenance"),
+            InlineKeyboardButton("👑 Panel", callback_data="owner:panel"),
         )
 
-    # ℹ️ INFO (ALL USERS)
-    kb.add(
-        InlineKeyboardButton("ℹ️ Info", callback_data="info")
-    )
+    kb.add(InlineKeyboardButton("ℹ️ Info", callback_data="menu:info"))
+    return kb
 
+
+def nav_keyboard(role="user"):
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.row(KeyboardButton("🚀 Scan"), KeyboardButton("📂 Upload"))
+    kb.row(KeyboardButton("🌐 Live"), KeyboardButton("⚙️ Settings"))
+    if role == "owner":
+        kb.row(KeyboardButton("👑 Panel"), KeyboardButton("ℹ️ Info"))
+    else:
+        kb.row(KeyboardButton("ℹ️ Info"))
     return kb
 
 
 def join_keyboard(link):
-    kb = InlineKeyboardMarkup()
+    kb = InlineKeyboardMarkup(row_width=2)
     kb.add(
         InlineKeyboardButton("🚀 Join Group", url=link),
-        InlineKeyboardButton("✅ Verify", callback_data="verify_join"),
+        InlineKeyboardButton("✅ Verify", callback_data="menu:verify_join"),
     )
     return kb
