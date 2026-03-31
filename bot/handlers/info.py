@@ -1,3 +1,4 @@
+# bot/handlers/info.py
 from aiogram import types
 from bot.loader import dp
 

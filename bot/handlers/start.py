@@ -39,7 +39,7 @@ async def start_cmd(message: types.Message):
         cancel_task(user_id)
         reset_state(user_id)
 
-    await ensure_user(user_id)
+.    await ensure_user(user_id)
 
     ref_arg = (message.get_args() or "").strip()
     if ref_arg.isdigit():

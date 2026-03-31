@@ -1,3 +1,4 @@
+# bot/handlers/owner.py
 from aiogram import types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from bot.loader import dp
@@ -106,7 +107,9 @@ async def owner_panel_actions(callback: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == "maintenance")
 async def toggle_maintenance(callback: types.CallbackQuery):
     user_id = callback.from_user.id
-    role = get_role(user_id)
+    if not is_elevated(user_id):
+        await safe_answer(callback, "❌ Access Denied", show_alert=True)
+        return
 
     try:
         if role not in ["owner", "admin"]:

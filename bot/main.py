@@ -51,6 +51,9 @@ async def run_polling() -> None:
     except TerminatedByOtherGetUpdates:
         logger.warning("Polling stopped: another instance is consuming updates.")
 
+    except TerminatedByOtherGetUpdates:
+        logger.exception("Polling terminated because another instance called getUpdates")
+        raise
 
 async def main() -> None:
     await init_db()
