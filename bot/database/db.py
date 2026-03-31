@@ -1,4 +1,5 @@
 from pathlib import Path
+from contextlib import asynccontextmanager
 from typing import Dict, List, Optional, Tuple
 
 import aiosqlite
@@ -12,13 +13,34 @@ async def _connect():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = await aiosqlite.connect(DB_PATH)
     conn.row_factory = aiosqlite.Row
+    async with conn.execute("PRAGMA journal_mode=WAL;") as cursor:
+        await cursor.fetchone()
+    await conn.execute("PRAGMA busy_timeout=5000;")
     return conn
+
+
+async def _fetchone(conn: aiosqlite.Connection, query: str, params: tuple = ()):
+    async with conn.execute(query, params) as cursor:
+        return await cursor.fetchone()
+
+
+async def _fetchall(conn: aiosqlite.Connection, query: str, params: tuple = ()):
+    async with conn.execute(query, params) as cursor:
+        return await cursor.fetchall()
+
+
+@asynccontextmanager
+async def _managed_connection():
+    conn = await _connect()
+    try:
+        yield conn
+    finally:
+        await conn.close()
 
 
 async def init_db():
     try:
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS users (
@@ -87,8 +109,7 @@ async def ensure_user(user_id: int):
     try:
         uid = int(user_id)
         role = "owner" if uid == int(OWNER_ID) else "user"
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute(
                 """
                 INSERT INTO users (user_id, role)
@@ -109,9 +130,8 @@ async def add_user(user_id: int):
 async def get_user(user_id: int) -> Optional[Dict]:
     try:
         await ensure_user(user_id)
-        conn = await _connect()
-        async with conn:
-            row = await conn.execute_fetchone("SELECT * FROM users WHERE user_id = ?", (int(user_id),))
+        async with _managed_connection() as conn:
+            row = await _fetchone(conn, "SELECT * FROM users WHERE user_id = ?", (int(user_id),))
             return dict(row) if row else None
     except Exception:
         return None
@@ -120,8 +140,7 @@ async def get_user(user_id: int) -> Optional[Dict]:
 async def add_points(user_id: int, amount: int):
     try:
         await ensure_user(user_id)
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute("UPDATE users SET points = points + ? WHERE user_id = ?", (int(amount), int(user_id)))
             await conn.commit()
     except Exception:
@@ -131,8 +150,7 @@ async def add_points(user_id: int, amount: int):
 async def add_credits(user_id: int, amount: int):
     try:
         await ensure_user(user_id)
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute("UPDATE users SET credits = credits + ? WHERE user_id = ?", (int(amount), int(user_id)))
             await conn.commit()
     except Exception:
@@ -142,9 +160,8 @@ async def add_credits(user_id: int, amount: int):
 async def get_balance(user_id: int) -> Dict[str, int]:
     try:
         await ensure_user(user_id)
-        conn = await _connect()
-        async with conn:
-            row = await conn.execute_fetchone("SELECT points, credits FROM users WHERE user_id = ?", (int(user_id),))
+        async with _managed_connection() as conn:
+            row = await _fetchone(conn, "SELECT points, credits FROM users WHERE user_id = ?", (int(user_id),))
             if not row:
                 return {"points": 0, "credits": 0}
             return {"points": int(row["points"]), "credits": int(row["credits"])}
@@ -159,9 +176,8 @@ async def save_referral(user_id: int, referrer_id: int):
         if uid == rid:
             return
 
-        conn = await _connect()
-        async with conn:
-            exists = await conn.execute_fetchone("SELECT 1 FROM referrals WHERE user_id = ?", (uid,))
+        async with _managed_connection() as conn:
+            exists = await _fetchone(conn, "SELECT 1 FROM referrals WHERE user_id = ?", (uid,))
             if exists:
                 return
 
@@ -176,9 +192,8 @@ async def save_referral(user_id: int, referrer_id: int):
 
 async def get_referral(user_id: int) -> Optional[Dict]:
     try:
-        conn = await _connect()
-        async with conn:
-            row = await conn.execute_fetchone("SELECT * FROM referrals WHERE user_id = ?", (int(user_id),))
+        async with _managed_connection() as conn:
+            row = await _fetchone(conn, "SELECT * FROM referrals WHERE user_id = ?", (int(user_id),))
             return dict(row) if row else None
     except Exception:
         return None
@@ -187,9 +202,8 @@ async def get_referral(user_id: int) -> Optional[Dict]:
 async def complete_referral(user_id: int) -> Optional[int]:
     try:
         uid = int(user_id)
-        conn = await _connect()
-        async with conn:
-            row = await conn.execute_fetchone("SELECT referrer_id, status FROM referrals WHERE user_id = ?", (uid,))
+        async with _managed_connection() as conn:
+            row = await _fetchone(conn, "SELECT referrer_id, status FROM referrals WHERE user_id = ?", (uid,))
             if not row or row["status"] == "completed":
                 return None
 
@@ -204,8 +218,7 @@ async def complete_referral(user_id: int) -> Optional[int]:
 
 async def add_group(group_id: int):
     try:
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute("INSERT OR IGNORE INTO force_groups (group_id) VALUES (?)", (int(group_id),))
             await conn.commit()
     except Exception:
@@ -214,8 +227,7 @@ async def add_group(group_id: int):
 
 async def remove_group(group_id: int):
     try:
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute("DELETE FROM force_groups WHERE group_id = ?", (int(group_id),))
             await conn.commit()
     except Exception:
@@ -224,9 +236,8 @@ async def remove_group(group_id: int):
 
 async def get_groups() -> List[int]:
     try:
-        conn = await _connect()
-        async with conn:
-            rows = await conn.execute_fetchall("SELECT group_id FROM force_groups")
+        async with _managed_connection() as conn:
+            rows = await _fetchall(conn, "SELECT group_id FROM force_groups")
             return [int(r["group_id"]) for r in rows]
     except Exception:
         return []
@@ -235,8 +246,7 @@ async def get_groups() -> List[int]:
 async def create_code(code: str, points: int, credits: int, limit: int):
     try:
         code = code.strip()
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute(
                 """
                 INSERT INTO redeem_codes (code, points, credits, code_limit, used_count)
@@ -259,13 +269,12 @@ async def redeem_code(user_id: int, code: str) -> Tuple[bool, str]:
         uid = int(user_id)
         await ensure_user(uid)
 
-        conn = await _connect()
-        async with conn:
-            code_row = await conn.execute_fetchone("SELECT * FROM redeem_codes WHERE code = ?", (code,))
+        async with _managed_connection() as conn:
+            code_row = await _fetchone(conn, "SELECT * FROM redeem_codes WHERE code = ?", (code,))
             if not code_row:
                 return False, "Invalid code"
 
-            used = await conn.execute_fetchone("SELECT 1 FROM user_codes WHERE user_id = ? AND code = ?", (uid, code))
+            used = await _fetchone(conn, "SELECT 1 FROM user_codes WHERE user_id = ? AND code = ?", (uid, code))
             if used:
                 return False, "Code already used"
 
@@ -286,8 +295,7 @@ async def redeem_code(user_id: int, code: str) -> Tuple[bool, str]:
 
 async def log_action(user_id: int, action: str):
     try:
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute(
                 "INSERT INTO logs (user_id, action) VALUES (?, ?)",
                 (int(user_id), action[:255]),
@@ -300,8 +308,7 @@ async def log_action(user_id: int, action: str):
 async def set_joined(user_id: int, joined: bool):
     try:
         await ensure_user(user_id)
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute("UPDATE users SET joined = ? WHERE user_id = ?", (1 if joined else 0, int(user_id)))
             await conn.commit()
     except Exception:
@@ -310,9 +317,8 @@ async def set_joined(user_id: int, joined: bool):
 
 async def get_user_count() -> int:
     try:
-        conn = await _connect()
-        async with conn:
-            row = await conn.execute_fetchone("SELECT COUNT(*) AS c FROM users")
+        async with _managed_connection() as conn:
+            row = await _fetchone(conn, "SELECT COUNT(*) AS c FROM users")
             return int(row["c"]) if row else 0
     except Exception:
         return 0
@@ -320,9 +326,8 @@ async def get_user_count() -> int:
 
 async def get_all_user_ids() -> List[int]:
     try:
-        conn = await _connect()
-        async with conn:
-            rows = await conn.execute_fetchall("SELECT user_id FROM users")
+        async with _managed_connection() as conn:
+            rows = await _fetchall(conn, "SELECT user_id FROM users")
             return [int(r["user_id"]) for r in rows]
     except Exception:
         return []
@@ -330,8 +335,7 @@ async def get_all_user_ids() -> List[int]:
 
 async def ban_user(user_id: int):
     try:
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute("INSERT OR IGNORE INTO banned_users (user_id) VALUES (?)", (int(user_id),))
             await conn.commit()
     except Exception:
@@ -340,8 +344,7 @@ async def ban_user(user_id: int):
 
 async def unban_user(user_id: int):
     try:
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute("DELETE FROM banned_users WHERE user_id = ?", (int(user_id),))
             await conn.commit()
     except Exception:
@@ -350,9 +353,8 @@ async def unban_user(user_id: int):
 
 async def is_banned(user_id: int) -> bool:
     try:
-        conn = await _connect()
-        async with conn:
-            row = await conn.execute_fetchone("SELECT 1 FROM banned_users WHERE user_id = ?", (int(user_id),))
+        async with _managed_connection() as conn:
+            row = await _fetchone(conn, "SELECT 1 FROM banned_users WHERE user_id = ?", (int(user_id),))
             return bool(row)
     except Exception:
         return False
@@ -360,8 +362,7 @@ async def is_banned(user_id: int) -> bool:
 
 async def add_premium_user(user_id: int):
     try:
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute("INSERT OR IGNORE INTO premium_users (user_id) VALUES (?)", (int(user_id),))
             await conn.commit()
     except Exception:
@@ -370,8 +371,7 @@ async def add_premium_user(user_id: int):
 
 async def remove_premium_user(user_id: int):
     try:
-        conn = await _connect()
-        async with conn:
+        async with _managed_connection() as conn:
             await conn.execute("DELETE FROM premium_users WHERE user_id = ?", (int(user_id),))
             await conn.commit()
     except Exception:
@@ -380,9 +380,8 @@ async def remove_premium_user(user_id: int):
 
 async def is_premium_user(user_id: int) -> bool:
     try:
-        conn = await _connect()
-        async with conn:
-            row = await conn.execute_fetchone("SELECT 1 FROM premium_users WHERE user_id = ?", (int(user_id),))
+        async with _managed_connection() as conn:
+            row = await _fetchone(conn, "SELECT 1 FROM premium_users WHERE user_id = ?", (int(user_id),))
             return bool(row)
     except Exception:
         return False
