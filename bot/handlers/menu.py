@@ -1,3 +1,4 @@
+import logging
 from aiogram import types
 
 from bot.keyboards.main_menu import main_menu, join_keyboard
