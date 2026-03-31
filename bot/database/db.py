@@ -1,12 +1,14 @@
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional, Tuple
+import logging
 
 import aiosqlite
 
 from bot.config import OWNER_ID
 
 DB_PATH = Path("bot/data/database.db")
+logger = logging.getLogger(__name__)
 
 
 async def _connect():
@@ -102,6 +104,7 @@ async def init_db():
             await conn.execute("CREATE TABLE IF NOT EXISTS premium_users (user_id INTEGER PRIMARY KEY)")
             await conn.commit()
     except Exception:
+        logger.exception("Failed to initialize database")
         return
 
 
@@ -120,6 +123,7 @@ async def ensure_user(user_id: int):
             )
             await conn.commit()
     except Exception:
+        logger.exception("Failed to ensure user in database: %s", user_id)
         return
 
 
@@ -134,6 +138,7 @@ async def get_user(user_id: int) -> Optional[Dict]:
             row = await _fetchone(conn, "SELECT * FROM users WHERE user_id = ?", (int(user_id),))
             return dict(row) if row else None
     except Exception:
+        logger.exception("Failed to fetch user from database: %s", user_id)
         return None
 
 
@@ -166,6 +171,7 @@ async def get_balance(user_id: int) -> Dict[str, int]:
                 return {"points": 0, "credits": 0}
             return {"points": int(row["points"]), "credits": int(row["credits"])}
     except Exception:
+        logger.exception("Failed to fetch user balance: %s", user_id)
         return {"points": 0, "credits": 0}
 
 
@@ -290,6 +296,7 @@ async def redeem_code(user_id: int, code: str) -> Tuple[bool, str]:
             await conn.commit()
             return True, "Code redeemed"
     except Exception:
+        logger.exception("Failed to redeem code for user %s", user_id)
         return False, "Database error"
 
 
