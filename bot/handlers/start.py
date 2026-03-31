@@ -23,6 +23,7 @@ from bot.database.db import (
 )
 
 from bot.services.message_manager import save_message, delete_message
+from bot.utils.response_manager import typing_delay
 
 
 @dp.message_handler(commands=["start"], state="*")
@@ -36,6 +37,7 @@ async def start_cmd(message: types.Message):
 
     # 🧹 clean old messages
     await delete_message(user_id, message.bot)
+    await typing_delay(message.bot, message.chat.id)
 
     # 🔄 cancel old tasks
     if get_task(user_id):
@@ -56,7 +58,7 @@ async def start_cmd(message: types.Message):
 
     # 🚧 maintenance check
     if is_maintenance() and role not in ["owner", "admin"]:
-        msg = await message.answer("🚧 Bot Under Maintenance\n⏳ Try later")
+        msg = await message.answer("🚧 Bot under maintenance\n⏳ Try again later")
         await save_message(user_id, msg)
         return
 
