@@ -1,4 +1,3 @@
-import logging
 from aiogram import types
 from bot.loader import dp, bot
 
@@ -100,9 +99,9 @@ async def start_cmd(message: types.Message):
 - /addpremium <user_id> → give premium
 - /removepremium <user_id> → remove premium"""
     
-        # 👤 USER PANEL
-        else:
-            text = f"""👤 USER PANEL
+    # 👤 USER PANEL
+    else:
+        text = f"""👤 USER PANEL
 
 🚀 Proxy Scan
 🌍 Live Proxies
@@ -113,10 +112,6 @@ async def start_cmd(message: types.Message):
 
 🎭 Role: {user.get('role', 'user')}"""
 
-        # 📩 send message
-        msg = await message.answer(text, reply_markup=main_menu(role))
-        await save_message(user_id, msg)
-    except Exception:
-        logger.exception("Failed to process /start for user %s", user_id)
-        msg = await message.answer("❌ Failed to open menu. Please try again.")
-        await save_message(user_id, msg)
+    # 📩 send message
+    msg = await message.answer(text, reply_markup=main_menu(role))
+    await save_message(user_id, msg)

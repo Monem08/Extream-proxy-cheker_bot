@@ -1,5 +1,4 @@
 # bot/handlers/menu.py
-import logging
 from aiogram import types
 from bot.loader import dp
 
@@ -14,7 +13,7 @@ from bot.services.role_service import get_role
 from bot.config import OWNER_ID, GROUP_LINK
 from bot.middlewares.access_guard import is_joined
 
-from bot.services.message_manager import delete_message
+from bot.services.message_manager import save_message, delete_message
 from bot.states.user_state import set_state, reset_state
 from bot.services.task_manager import cancel_task
 from bot.services.ban_service import is_banned
@@ -38,17 +37,15 @@ async def handle_menu(callback: types.CallbackQuery):
             return
 
         if is_banned(user_id):
-            await edit_or_send(user_id, callback.message, "🚫 You are banned")
+            msg = await callback.message.answer("🚫 You are banned")
+            await save_message(user_id, msg)
             return
 
         if user_id != int(OWNER_ID):
             if is_spamming(user_id):
                 banned = add_strike(user_id)
-                await edit_or_send(
-                    user_id,
-                    callback.message,
-                    "🚫 You are banned for spam" if banned else "⚠️ Stop spamming!",
-                )
+                msg = await callback.message.answer("🚫 You are banned for spam" if banned else "⚠️ Stop spamming!")
+                await save_message(user_id, msg)
                 return
 
             if not is_allowed(user_id):
