@@ -34,14 +34,15 @@ async def start_cmd(message: types.Message):
     user_id = message.from_user.id
 
     try:
+        # 🧹 clean old messages first (single-message UI)
+        await delete_message(user_id, message.bot)
+
         # ❌ banned check
         if is_banned(user_id):
             msg = await message.answer("🚫 You are banned")
             await save_message(user_id, msg)
             return
 
-        # 🧹 clean old messages
-        await delete_message(user_id, message.bot)
         await typing_delay(message.bot, message.chat.id)
 
         # 🔄 cancel old tasks
