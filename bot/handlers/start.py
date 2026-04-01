@@ -35,7 +35,7 @@ async def start_cmd(message: types.Message):
 
     try:
         loading = await message.answer(
-            "🔄 Loading...",
+            "♻️ Resetting UI...",
             reply_markup=ReplyKeyboardRemove()
         )
 

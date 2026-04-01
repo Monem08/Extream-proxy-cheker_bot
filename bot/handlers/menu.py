@@ -111,7 +111,7 @@ async def callback_router(callback: types.CallbackQuery):
             await callback.answer("⚠️ Message unavailable", show_alert=True)
             return
         loading = await callback.message.answer(
-            "🔄 Loading...",
+            "♻️ Resetting UI...",
             reply_markup=ReplyKeyboardRemove()
         )
 

@@ -17,7 +17,7 @@ async def fallback_message(message: types.Message):
     user_id = message.from_user.id
     try:
         loading = await message.answer(
-            "🔄 Loading...",
+            "♻️ Resetting UI...",
             reply_markup=ReplyKeyboardRemove()
         )
         await edit_or_send(
