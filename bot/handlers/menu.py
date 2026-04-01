@@ -27,8 +27,7 @@ logger = logging.getLogger(__name__)
 _ALLOWED = {
     "menu": {"home", "verify"},
     "scan": {"start"},
-    "upload": {"start"},
-    "live": {"view"},
+    "proxy": {"upload", "live"},
     "settings": {"open", "refresh"},
     "owner": {"panel"},
     "info": {"view"},
@@ -137,11 +136,11 @@ async def callback_router(callback: types.CallbackQuery):
             await cancel_task(user_id)
             set_state(user_id, "WAITING_PROXY")
             await edit_or_send(user_id, callback.message, "📥 Send proxies (ip:port)", build_scan_menu())
-        elif module == "upload" and action == "start":
+        elif module == "proxy" and action == "upload":
             await cancel_task(user_id)
             set_state(user_id, "WAITING_FILE")
             await edit_or_send(user_id, callback.message, "📎 Upload .txt proxy file", build_upload_menu())
-        elif module == "live" and action == "view":
+        elif module == "proxy" and action == "live":
             from bot.handlers.live import handle_live_action
 
             await handle_live_action(callback)
