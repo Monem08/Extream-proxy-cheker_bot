@@ -1,17 +1,24 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-def build_main_menu(role: str = "user") -> InlineKeyboardMarkup:
-    kb = InlineKeyboardMarkup(row_width=2)
-    kb.row(
-        InlineKeyboardButton("🚀 Start Scan", callback_data="scan:start"),
-        InlineKeyboardButton("📂 Upload", callback_data="proxy:upload"),
-    )
-    kb.row(
-        InlineKeyboardButton("🌐 Live", callback_data="proxy:live"),
-        InlineKeyboardButton("⚙️ Settings", callback_data="settings:open"),
-    )
+def build_main_menu(role: str):
+    buttons = [
+        [
+            InlineKeyboardButton("🚀 Scan", callback_data="scan:start"),
+            InlineKeyboardButton("📂 Upload", callback_data="proxy:upload"),
+        ],
+        [
+            InlineKeyboardButton("🌐 Live", callback_data="proxy:live"),
+            InlineKeyboardButton("⚙️ Settings", callback_data="menu:settings"),
+        ],
+        [
+            InlineKeyboardButton("ℹ️ Info", callback_data="menu:info")
+        ]
+    ]
+
     if role == "owner":
-        kb.row(InlineKeyboardButton("👑 Owner Panel", callback_data="owner:panel"))
-    kb.row(InlineKeyboardButton("ℹ️ Info", callback_data="info:view"))
-    return kb
+        buttons.insert(2, [
+            InlineKeyboardButton("👑 Panel", callback_data="owner:panel")
+        ])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

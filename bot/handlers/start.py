@@ -2,7 +2,8 @@ import logging
 from aiogram import types
 from bot.loader import dp, bot
 
-from bot.keyboards.main_menu import main_menu, join_keyboard
+from bot.keyboards.inline.main_menu import build_main_menu
+from bot.keyboards.inline.join_menu import build_join_menu
 from bot.middlewares.access_guard import is_joined
 from bot.config import GROUP_LINK
 
@@ -54,7 +55,7 @@ async def start_cmd(message: types.Message):
 
         joined = await is_joined(bot, user_id)
         if not joined:
-            await edit_or_send(user_id, message, "🔐 Join required to use bot", join_keyboard(GROUP_LINK))
+            await edit_or_send(user_id, message, "🔐 Join required to use bot", build_join_menu(GROUP_LINK))
             return
 
         await set_joined(user_id, True)
@@ -93,7 +94,7 @@ async def start_cmd(message: types.Message):
 
 🎭 Role: {user.get('role', 'user')}"""
 
-        await edit_or_send(user_id, message, text, main_menu(role))
+        await edit_or_send(user_id, message, text, build_main_menu(role))
 
     except Exception:
         logger.exception("Failed to process /start for user %s", user_id)

@@ -20,12 +20,12 @@ from bot.services.admin_storage import get_totals
 from bot.keyboards.inline.main_menu import build_main_menu
 from bot.keyboards.inline.scan_menu import build_scan_menu, build_upload_menu
 from bot.keyboards.inline.settings_menu import build_settings_menu, build_owner_menu
-from bot.keyboards.main_menu import join_keyboard
+from bot.keyboards.inline.join_menu import build_join_menu
 
 logger = logging.getLogger(__name__)
 
 _ALLOWED = {
-    "menu": {"home", "verify"},
+    "menu": {"home", "verify", "settings", "info"},
     "scan": {"start"},
     "proxy": {"upload", "live"},
     "settings": {"open", "refresh"},
@@ -129,9 +129,13 @@ async def callback_router(callback: types.CallbackQuery):
         elif module == "menu" and action == "verify":
             joined = await is_joined(callback.bot, user_id)
             if not joined:
-                await edit_or_send(user_id, callback.message, "🔐 Join required", join_keyboard(GROUP_LINK))
+                await edit_or_send(user_id, callback.message, "🔐 Join required", build_join_menu(GROUP_LINK))
             else:
                 await show_home(callback)
+        elif module == "menu" and action == "settings":
+            await show_settings(callback)
+        elif module == "menu" and action == "info":
+            await show_info(callback)
         elif module == "scan" and action == "start":
             await cancel_task(user_id)
             set_state(user_id, "WAITING_PROXY")

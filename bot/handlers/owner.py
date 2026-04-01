@@ -15,7 +15,7 @@ from bot.services.admin_storage import (
 )
 
 from bot.services.message_manager import edit_or_send
-from bot.keyboards.main_menu import main_menu
+from bot.keyboards.inline.main_menu import build_main_menu
 
 from bot.services.redeem_service import redeem, create_redeem_code
 from bot.services.group_service import add_force_group, remove_force_group, get_force_groups
@@ -76,7 +76,7 @@ async def handle_owner_action(callback: types.CallbackQuery, action: str):
             new_state = not is_maintenance()
             set_maintenance(new_state)
             status = "ON 🔒" if new_state else "OFF ✅"
-            await edit_or_send(user_id, callback.message, f"⚙️ Maintenance: {status}", main_menu(role))
+            await edit_or_send(user_id, callback.message, f"⚙️ Maintenance: {status}", build_main_menu(role))
             return
 
         await callback.answer("⚠️ Invalid action", show_alert=True)
