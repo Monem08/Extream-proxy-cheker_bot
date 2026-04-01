@@ -2,6 +2,7 @@ import logging
 from typing import Dict
 
 from aiogram import types
+from aiogram.types import ReplyKeyboardRemove
 
 from bot.loader import dp
 from bot.services.message_manager import edit_or_send
@@ -15,11 +16,16 @@ logger = logging.getLogger(__name__)
 async def fallback_message(message: types.Message):
     user_id = message.from_user.id
     try:
+        loading = await message.answer(
+            "🔄 Loading...",
+            reply_markup=ReplyKeyboardRemove()
+        )
         await edit_or_send(
             user_id,
             message,
             "⚠️ Use the inline buttons to navigate.",
             build_main_menu(get_role(user_id)),
         )
+        await loading.delete()
     except Exception:
         logger.exception("Fallback handler failed for user %s", user_id)

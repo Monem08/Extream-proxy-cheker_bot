@@ -1,5 +1,6 @@
 import logging
 from aiogram import types
+from aiogram.types import ReplyKeyboardRemove
 
 from bot.loader import dp
 from bot.config import GROUP_LINK, OWNER_ID
@@ -109,6 +110,10 @@ async def callback_router(callback: types.CallbackQuery):
         if not callback.message:
             await callback.answer("⚠️ Message unavailable", show_alert=True)
             return
+        loading = await callback.message.answer(
+            "🔄 Loading...",
+            reply_markup=ReplyKeyboardRemove()
+        )
 
         raw = (callback.data or "").strip()
         parts = raw.split(":")
@@ -160,6 +165,7 @@ async def callback_router(callback: types.CallbackQuery):
             await show_home(callback)
 
         await callback.answer()
+        await loading.delete()
     except Exception:
         logger.exception("Callback router failed for user %s", user_id)
         await callback.answer("⚠️ Unexpected error", show_alert=True)

@@ -1,5 +1,6 @@
 import logging
 from aiogram import types
+from aiogram.types import ReplyKeyboardRemove
 from bot.loader import dp, bot
 
 from bot.keyboards.inline.main_menu import build_main_menu
@@ -33,8 +34,14 @@ async def start_cmd(message: types.Message):
     user_id = message.from_user.id
 
     try:
+        loading = await message.answer(
+            "🔄 Loading...",
+            reply_markup=ReplyKeyboardRemove()
+        )
+
         if is_banned(user_id):
             await edit_or_send(user_id, message, "🚫 You are banned")
+            await loading.delete()
             return
 
         if get_task(user_id):
@@ -51,11 +58,13 @@ async def start_cmd(message: types.Message):
 
         if is_maintenance() and role not in ["owner", "admin"]:
             await edit_or_send(user_id, message, "🚧 Bot Under Maintenance\n⏳ Try later")
+            await loading.delete()
             return
 
         joined = await is_joined(bot, user_id)
         if not joined:
             await edit_or_send(user_id, message, "🔐 Join required to use bot", build_join_menu(GROUP_LINK))
+            await loading.delete()
             return
 
         await set_joined(user_id, True)
@@ -95,6 +104,7 @@ async def start_cmd(message: types.Message):
 🎭 Role: {user.get('role', 'user')}"""
 
         await edit_or_send(user_id, message, text, build_main_menu(role))
+        await loading.delete()
 
     except Exception:
         logger.exception("Failed to process /start for user %s", user_id)
