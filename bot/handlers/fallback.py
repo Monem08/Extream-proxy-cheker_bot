@@ -1,51 +1,31 @@
+import logging
+from typing import Dict
+
 from aiogram import types
+from aiogram.types import ReplyKeyboardRemove
+
 from bot.loader import dp
+from bot.services.message_manager import edit_or_send
+from bot.services.role_service import get_role
+from bot.keyboards.inline.main_menu import build_main_menu
 
-from bot.handlers.menu import handle_menu_action
-from bot.handlers.live import handle_live_action
-from bot.handlers.owner import handle_owner_action
-from bot.handlers.info import handle_info_action
+logger = logging.getLogger(__name__)
 
 
-@dp.callback_query_handler()
-async def callback_router(callback: types.CallbackQuery):
+@dp.message_handler()
+async def fallback_message(message: types.Message):
+    user_id = message.from_user.id
     try:
-        raw = callback.data or ""
-        parts = raw.split(":")
-        if len(parts) < 2:
-            await callback.answer("⚠️ Invalid action", show_alert=True)
-            return
-
-        module, action = parts[0], parts[1]
-        optional_data = parts[2] if len(parts) > 2 else None
-
-        if module == "menu":
-            if action == "info":
-                await handle_info_action(callback)
-            else:
-                await handle_menu_action(callback, action, optional_data)
-        elif module == "scan":
-            if action == "start":
-                await handle_menu_action(callback, "scan_start")
-            elif action == "stop":
-                await handle_menu_action(callback, "cancel")
-            else:
-                await callback.answer("⚠️ Invalid action", show_alert=True)
-                return
-        elif module == "proxy":
-            if action == "upload":
-                await handle_menu_action(callback, "upload")
-            elif action == "live":
-                await handle_live_action(callback)
-            else:
-                await callback.answer("⚠️ Invalid action", show_alert=True)
-                return
-        elif module == "owner":
-            await handle_owner_action(callback, action)
-        else:
-            await callback.answer("⚠️ Invalid action", show_alert=True)
-            return
-
-        await callback.answer()
+        loading = await message.answer(
+            "♻️ Resetting UI...",
+            reply_markup=ReplyKeyboardRemove()
+        )
+        await edit_or_send(
+            user_id,
+            message,
+            "⚠️ Use the inline buttons to navigate.",
+            build_main_menu(get_role(user_id)),
+        )
+        await loading.delete()
     except Exception:
-        await callback.answer("⚠️ Unexpected error", show_alert=True)
+        logger.exception("Fallback handler failed for user %s", user_id)

@@ -22,6 +22,6 @@ async def edit_or_send(
         await save_message(user_id, edited)
         return edited
     except Exception:
-        sent = await message.answer(text, reply_markup=reply_markup)
+        sent = await message.bot.send_message(message.chat.id, text, reply_markup=reply_markup)
         await save_message(user_id, sent)
         return sent
