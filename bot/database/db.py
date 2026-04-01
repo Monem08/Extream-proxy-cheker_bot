@@ -17,7 +17,9 @@ async def _connect():
     conn.row_factory = aiosqlite.Row
     async with conn.execute("PRAGMA journal_mode=WAL;") as cursor:
         await cursor.fetchone()
+    await conn.execute("PRAGMA synchronous=NORMAL;")
     await conn.execute("PRAGMA busy_timeout=5000;")
+    await conn.execute("PRAGMA foreign_keys=ON;")
     return conn
 
 
@@ -29,6 +31,16 @@ async def _fetchone(conn: aiosqlite.Connection, query: str, params: tuple = ()):
 async def _fetchall(conn: aiosqlite.Connection, query: str, params: tuple = ()):
     async with conn.execute(query, params) as cursor:
         return await cursor.fetchall()
+
+
+async def fetchone(query: str, params: tuple = ()):
+    async with _managed_connection() as conn:
+        return await _fetchone(conn, query, params)
+
+
+async def fetchall(query: str, params: tuple = ()):
+    async with _managed_connection() as conn:
+        return await _fetchall(conn, query, params)
 
 
 @asynccontextmanager
