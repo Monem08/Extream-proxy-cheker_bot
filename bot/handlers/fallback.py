@@ -1,4 +1,6 @@
 import logging
+from typing import Dict
+
 from aiogram import types
 
 from bot.loader import dp
@@ -7,22 +9,6 @@ from bot.services.role_service import get_role
 from bot.keyboards.inline.main_menu import build_main_menu
 
 logger = logging.getLogger(__name__)
-
-logger = logging.getLogger(__name__)
-
-_ALLOWED: Dict[str, set[str]] = {
-    "menu": {"home", "menu", "settings", "verify_join", "cancel", "info"},
-    "scan": {"start", "stop"},
-    "proxy": {"upload", "live"},
-    "owner": {"panel", "stats", "broadcast", "ban", "premium", "maintenance"},
-}
-
-
-async def _safe_answer(callback: types.CallbackQuery, text: str, alert: bool = True) -> None:
-    try:
-        await callback.answer(text, show_alert=alert)
-    except Exception:
-        logger.debug("Failed callback answer")
 
 
 @dp.message_handler()
