@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: extream-proxy-checker-bot
+    runtime: docker
+    plan: free
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: PORT
+        value: "10000"
+      - key: DATA_DIR
+        value: /data

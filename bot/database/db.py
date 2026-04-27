@@ -7,7 +7,8 @@ import aiosqlite
 
 from bot.config import OWNER_ID
 
-DB_PATH = Path("bot/data/database.db")
+import os as _os
+DB_PATH = Path(_os.getenv("DATA_DIR", "bot/data")) / "database.db"
 logger = logging.getLogger(__name__)
 
 
