@@ -74,24 +74,26 @@ async def run_polling() -> None:
 # =========================
 # 🧠 MAIN ENTRY
 # =========================
-async def main() -> None:
+async def main(skip_health_server: bool = False) -> None:
     logger.info("🧠 Bot starting...")
 
     await init_db()
     acquire_single_instance_lock()
 
-    port = int(os.getenv("PORT", "10000"))
-    health_runner = await start_health_server(port)
-
-    logger.info("🌐 Health server running on port %s", port)
+    health_runner = None
+    if not skip_health_server:
+        port = int(os.getenv("PORT", "10000"))
+        health_runner = await start_health_server(port)
+        logger.info("🌐 Health server running on port %s", port)
 
     try:
         await run_polling()
     finally:
         logger.info("🧹 Shutting down...")
 
-        with suppress(Exception):
-            await health_runner.cleanup()
+        if health_runner is not None:
+            with suppress(Exception):
+                await health_runner.cleanup()
 
         with suppress(Exception):
             await tg_bot.session.close()
